@@ -11,7 +11,7 @@ services:
     volumes:
       - stats_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      test: ["CMD-SHELL", "pg_isready -U stats_user -d stats_db"]
       timeout: 5s
       interval: 5s
       retries: 10
@@ -19,20 +19,23 @@ services:
       - "5433:5432"
 
   stats-server:
-    build: stats/stats-server
+    build:
+      context: .
+      dockerfile: stats/stats-server/Dockerfile
     container_name: stats-server
     environment:
-      - SERVER_PORT=9090
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db:5432/stats_db
-      - SPRING_DATASOURCE_USERNAME=stats_user
-      - SPRING_DATASOURCE_PASSWORD=stats_pass
-      - SPRING_JPA_HIBERNATE_DDL_AUTO=create
+      - SPRING_PROFILES_ACTIVE=docker
     depends_on:
       stats-db:
         condition: service_healthy
-    restart: on-failure
     ports:
       - "9090:9090"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   ewm-db:
     image: postgres:16.1
@@ -44,7 +47,7 @@ services:
     volumes:
       - ewm_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      test: ["CMD-SHELL", "pg_isready -U ewm_user -d ewm_db"]
       timeout: 5s
       interval: 5s
       retries: 10
@@ -52,12 +55,12 @@ services:
       - "5434:5432"
 
   ewm-service:
-    build: ewm-service
+    build:
+      context: .
+      dockerfile: ewm-service/Dockerfile
     container_name: ewm-service
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm_db
-      - SPRING_DATASOURCE_USERNAME=ewm_user
-      - SPRING_DATASOURCE_PASSWORD=ewm_pass
+      - SPRING_PROFILES_ACTIVE=docker
     depends_on:
       ewm-db:
         condition: service_healthy
@@ -65,5 +68,5 @@ services:
       - "8080:8080"
 
 volumes:
-  stats_db_data: {}
-  ewm_db_data: {}
+  stats_db_data:
+  ewm_db_data:

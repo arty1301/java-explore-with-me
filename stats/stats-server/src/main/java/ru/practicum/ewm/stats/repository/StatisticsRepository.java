@@ -13,11 +13,11 @@ import java.util.List;
 @Repository
 public interface StatisticsRepository extends JpaRepository<EndpointAccess, Long> {
 
-    @Query("SELECT new ru.practicum.ewm.stats.dto.ViewStats(" +
+    @Query("SELECT new ru.practicum.ewm.stats.client.ViewStats(" +
             "ea.application, ea.uri, COUNT(ea.ipAddress)) " +
             "FROM EndpointAccess ea " +
             "WHERE ea.accessedAt BETWEEN :startTime AND :endTime " +
-            "AND (COALESCE(:uris) IS NULL OR ea.uri IN :uris) " +
+            "AND (:uris IS NULL OR ea.uri IN :uris) " +
             "GROUP BY ea.application, ea.uri " +
             "ORDER BY COUNT(ea.ipAddress) DESC")
     List<ViewStats> calculateAccessStatistics(
@@ -25,11 +25,11 @@ public interface StatisticsRepository extends JpaRepository<EndpointAccess, Long
             @Param("endTime") LocalDateTime endTime,
             @Param("uris") List<String> uris);
 
-    @Query("SELECT new ru.practicum.ewm.stats.dto.ViewStats(" +
+    @Query("SELECT new ru.practicum.ewm.stats.client.ViewStats(" +
             "ea.application, ea.uri, COUNT(DISTINCT ea.ipAddress)) " +
             "FROM EndpointAccess ea " +
             "WHERE ea.accessedAt BETWEEN :startTime AND :endTime " +
-            "AND (COALESCE(:uris) IS NULL OR ea.uri IN :uris) " +
+            "AND (:uris IS NULL OR ea.uri IN :uris) " +
             "GROUP BY ea.application, ea.uri " +
             "ORDER BY COUNT(DISTINCT ea.ipAddress) DESC")
     List<ViewStats> calculateUniqueAccessStatistics(

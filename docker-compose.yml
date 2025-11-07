@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   stats-db:
     image: postgres:16.1
@@ -20,22 +18,18 @@ services:
 
   stats-server:
     build:
-      context: .
-      dockerfile: stats/stats-server/Dockerfile
+      context: ./stats/stats-server
+      dockerfile: Dockerfile
     container_name: stats-server
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db:5432/stats_db
+      - SPRING_DATASOURCE_USERNAME=stats_user
+      - SPRING_DATASOURCE_PASSWORD=stats_pass
     depends_on:
       stats-db:
         condition: service_healthy
     ports:
       - "9090:9090"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   ewm-db:
     image: postgres:16.1
@@ -56,11 +50,13 @@ services:
 
   ewm-service:
     build:
-      context: .
-      dockerfile: ewm-service/Dockerfile
+      context: ./ewm-service
+      dockerfile: Dockerfile
     container_name: ewm-service
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm_db
+      - SPRING_DATASOURCE_USERNAME=ewm_user
+      - SPRING_DATASOURCE_PASSWORD=ewm_pass
     depends_on:
       ewm-db:
         condition: service_healthy

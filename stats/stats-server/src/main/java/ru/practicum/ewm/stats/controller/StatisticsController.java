@@ -45,6 +45,18 @@ public class StatisticsController {
 
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("Statistics service is healthy");
+        log.info("Health check requested");
+        try {
+            return ResponseEntity.ok("Statistics service is healthy");
+        } catch (Exception e) {
+            log.error("Health check failed", e);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("Statistics service is unavailable");
+        }
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<String> root() {
+        return ResponseEntity.ok("Statistics Service is running");
     }
 }

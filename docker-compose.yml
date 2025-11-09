@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   stats-db:
     image: postgres:16.1
@@ -6,24 +8,38 @@ services:
       POSTGRES_USER: stats_user
       POSTGRES_PASSWORD: stats_pass
       POSTGRES_DB: stats_db
+    volumes:
+      - stats_db_data:/var/lib/postgresql/data
+      - ./stats/stats-server/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U stats_user -d stats_db"]
       timeout: 5s
       interval: 5s
       retries: 10
+    ports:
+      - "5433:5432"
+    networks:
+      - ewm-network
 
   stats-server:
     build: ./stats/stats-server
     container_name: stats-server
     environment:
+      - SERVER_PORT=9090
       - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db:5432/stats_db
       - SPRING_DATASOURCE_USERNAME=stats_user
       - SPRING_DATASOURCE_PASSWORD=stats_pass
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_SHOW_SQL=false
+      - LOGGING_LEVEL_RU_PRACTICUM=INFO
     depends_on:
       stats-db:
         condition: service_healthy
+    restart: unless-stopped
     ports:
       - "9090:9090"
+    networks:
+      - ewm-network
 
   ewm-db:
     image: postgres:16.1
@@ -32,21 +48,50 @@ services:
       POSTGRES_USER: ewm_user
       POSTGRES_PASSWORD: ewm_pass
       POSTGRES_DB: ewm_db
+    volumes:
+      - ewm_db_data:/var/lib/postgresql/data
+      - ./ewm-service/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./ewm-service/src/main/resources/data.sql:/docker-entrypoint-initdb.d/02-data.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ewm_user -d ewm_db"]
       timeout: 5s
       interval: 5s
       retries: 10
+    ports:
+      - "5434:5432"
+    networks:
+      - ewm-network
 
   ewm-service:
     build: ./ewm-service
     container_name: ewm-service
     environment:
+      - SERVER_PORT=8080
       - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm_db
       - SPRING_DATASOURCE_USERNAME=ewm_user
       - SPRING_DATASOURCE_PASSWORD=ewm_pass
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_SHOW_SQL=false
+      - LOGGING_LEVEL_RU_PRACTICUM=INFO
+      - STATS_SERVICE_URL=http://stats-server:9090
+      - JAVA_OPTS=-Xmx512m -Xms256m
     depends_on:
       ewm-db:
         condition: service_healthy
+      stats-server:
+        condition: service_started
+    restart: unless-stopped
     ports:
       - "8080:8080"
+    networks:
+      - ewm-network
+
+volumes:
+  stats_db_data:
+    driver: local
+  ewm_db_data:
+    driver: local
+
+networks:
+  ewm-network:
+    driver: bridge

@@ -82,7 +82,11 @@ public class EventManagementServiceImpl implements EventManagementService {
         Event savedEvent = eventRepository.save(newEvent);
         log.info("Successfully created event with ID: {} for user ID: {}", savedEvent.getId(), userId);
 
-        return createEventFullDtoWithStats(savedEvent, retrieveEventsViewCounts(List.of(savedEvent)));
+        EventFullDto result = eventMapper.convertToDetailedDto(savedEvent);
+        result.setConfirmedRequests(0L);
+        result.setViews(0L);
+
+        return result;
     }
 
     @Override
@@ -103,14 +107,18 @@ public class EventManagementServiceImpl implements EventManagementService {
             startTime = LocalDateTime.now();
         }
 
-        int actualPageSize = Math.min(pageSize, 1000);
-        Pageable pageable = createPageable(startingFrom, actualPageSize, sortBy);
+        Pageable pageable = createPageable(startingFrom, pageSize, sortBy);
 
         Page<Event> eventsPage = eventRepository.findPublishedEventsWithFilters(
                 searchText, categories, paid, startTime, endTime, pageable);
         List<Event> events = eventsPage.getContent();
 
-        events = applyAdditionalFilters(events, startTime, endTime, onlyAvailable);
+        if (onlyAvailable) {
+            events = events.stream()
+                    .filter(this::isEventAvailable)
+                    .collect(Collectors.toList());
+        }
+
         Map<Long, Long> eventViews = retrieveEventsViewCounts(events);
 
         List<EventShortDto> resultEvents = events.stream()
@@ -136,9 +144,7 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         recordEndpointAccess(httpRequest);
 
-        EventFullDto eventDto = createEventFullDtoWithStats(event, retrieveEventsViewCounts(List.of(event)));
-        log.info("Retrieved event details for ID: {}", eventId);
-        return eventDto;
+        return createEventFullDtoWithStats(event, retrieveEventsViewCounts(List.of(event)));
     }
 
     @Override
@@ -163,12 +169,17 @@ public class EventManagementServiceImpl implements EventManagementService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with ID: " + eventId));
 
-        validateUserEventAccess(userId, event);
-        validateEventModificationTime(event);
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new AccessDeniedException("User is not authorized to modify this event");
+        }
 
         if (!Event.EventStatus.PENDING.equals(event.getStatus()) &&
                 !Event.EventStatus.CANCELED.equals(event.getStatus())) {
             throw new DataConflictException("Only pending or canceled events can be modified");
+        }
+
+        if (event.getEventDate().isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_EVENT))) {
+            throw new DataConflictException("Event cannot be modified less than " + MIN_HOURS_BEFORE_EVENT + " hours before start");
         }
 
         applyUserEventUpdates(event, request);
@@ -183,6 +194,10 @@ public class EventManagementServiceImpl implements EventManagementService {
     @Transactional(readOnly = true)
     public List<EventShortDto> getUserEvents(Long userId, int startingFrom, int pageSize) {
         log.info("Retrieving events for user ID: {}, from: {}, size: {}", userId, startingFrom, pageSize);
+
+        if (!userRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("User not found with ID: " + userId);
+        }
 
         Pageable pageable = PageRequest.of(startingFrom / pageSize, pageSize);
         Page<Event> userEventsPage = eventRepository.findEventsByInitiator(userId, pageable);
@@ -209,7 +224,9 @@ public class EventManagementServiceImpl implements EventManagementService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with ID: " + eventId));
 
-        validateUserEventAccess(userId, event);
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new AccessDeniedException("User is not the initiator of this event");
+        }
 
         return participationRepository.findEventParticipations(eventId)
                 .stream()
@@ -226,12 +243,21 @@ public class EventManagementServiceImpl implements EventManagementService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with ID: " + eventId));
 
-        validateUserEventAccess(userId, event);
+        if (!event.getInitiator().getId().equals(userId)) {
+            throw new AccessDeniedException("User is not the initiator of this event");
+        }
 
         List<EventParticipation> participations = participationRepository
                 .findParticipationsByIdList(statusUpdate.getRequestIds());
 
-        validateParticipationUpdate(participations, eventId);
+        for (EventParticipation participation : participations) {
+            if (!participation.getEvent().getId().equals(eventId)) {
+                throw new DataConflictException("Participation does not belong to the specified event");
+            }
+            if (!EventParticipation.ParticipationStatus.PENDING.equals(participation.getStatus())) {
+                throw new DataConflictException("Cannot update non-pending participation request");
+            }
+        }
 
         Integer currentConfirmed = participationRepository.countParticipationsByStatus(
                 eventId, EventParticipation.ParticipationStatus.CONFIRMED);
@@ -316,14 +342,16 @@ public class EventManagementServiceImpl implements EventManagementService {
         long confirmedCount = currentConfirmed != null ? currentConfirmed.longValue() : 0L;
 
         for (EventParticipation participation : participations) {
-            if ("CONFIRMED".equals(action.toUpperCase())) {
+            if ("CONFIRMED".equalsIgnoreCase(action)) {
                 if (confirmedCount >= participantLimit) {
-                    throw new DataConflictException("Participant limit reached for event");
+                    participation.setStatus(EventParticipation.ParticipationStatus.REJECTED);
+                    rejected.add(participationMapper.convertToDto(participation));
+                } else {
+                    participation.setStatus(EventParticipation.ParticipationStatus.CONFIRMED);
+                    confirmed.add(participationMapper.convertToDto(participation));
+                    confirmedCount++;
                 }
-                participation.setStatus(EventParticipation.ParticipationStatus.CONFIRMED);
-                confirmed.add(participationMapper.convertToDto(participation));
-                confirmedCount++;
-            } else if ("REJECTED".equals(action.toUpperCase())) {
+            } else if ("REJECTED".equalsIgnoreCase(action)) {
                 participation.setStatus(EventParticipation.ParticipationStatus.REJECTED);
                 rejected.add(participationMapper.convertToDto(participation));
             }
@@ -331,7 +359,7 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         participationRepository.saveAll(participations);
 
-        if (confirmedCount >= participantLimit && "CONFIRMED".equals(action.toUpperCase())) {
+        if (confirmedCount >= participantLimit && "CONFIRMED".equalsIgnoreCase(action)) {
             List<EventParticipation> pendingParticipations = participationRepository
                     .findParticipationsByStatus(event.getId(), EventParticipation.ParticipationStatus.PENDING);
 
@@ -401,19 +429,21 @@ public class EventManagementServiceImpl implements EventManagementService {
     }
 
     private Pageable createPageable(int from, int size, String sort) {
+        if (from < 0) {
+            throw new ValidationException("Parameter 'from' must be positive or zero");
+        }
+        if (size <= 0) {
+            throw new ValidationException("Parameter 'size' must be positive");
+        }
+
         Sort sorting = Sort.by(Sort.Direction.ASC, "eventDate");
         if ("VIEWS".equalsIgnoreCase(sort)) {
-            sorting = Sort.by(Sort.Direction.DESC, "views");
+            sorting = Sort.by(Sort.Direction.ASC, "id");
         } else if ("EVENT_DATE".equalsIgnoreCase(sort)) {
             sorting = Sort.by(Sort.Direction.ASC, "eventDate");
         }
-        return PageRequest.of(from / size, size, sorting);
-    }
 
-    private List<Event> applyAdditionalFilters(List<Event> events, LocalDateTime start, LocalDateTime end, boolean onlyAvailable) {
-        return events.stream()
-                .filter(event -> !onlyAvailable || isEventAvailable(event))
-                .collect(Collectors.toList());
+        return PageRequest.of(from / size, size, sorting);
     }
 
     private boolean isEventAvailable(Event event) {
@@ -426,7 +456,9 @@ public class EventManagementServiceImpl implements EventManagementService {
     }
 
     private Map<Long, Long> retrieveEventsViewCounts(List<Event> events) {
-        if (events.isEmpty()) return new HashMap<>();
+        if (events.isEmpty()) {
+            return new HashMap<>();
+        }
 
         List<String> eventUris = events.stream()
                 .map(event -> "/events/" + event.getId())
@@ -435,24 +467,26 @@ public class EventManagementServiceImpl implements EventManagementService {
         try {
             List<ViewStats> stats = statisticsClient.fetchAccessStatistics(
                     LocalDateTime.now().minusYears(1),
-                    LocalDateTime.now(),
+                    LocalDateTime.now().plusYears(1),
                     eventUris,
                     true);
 
             return stats.stream()
                     .collect(Collectors.toMap(
                             stat -> extractEventIdFromUri(stat.getUri()),
-                            ViewStats::getHits
+                            ViewStats::getHits,
+                            (existing, replacement) -> existing
                     ));
         } catch (Exception e) {
             log.warn("Failed to retrieve view statistics", e);
-            return new HashMap<>();
+            return events.stream().collect(Collectors.toMap(Event::getId, event -> 0L));
         }
     }
 
     private Long extractEventIdFromUri(String uri) {
         try {
-            return Long.parseLong(uri.substring(uri.lastIndexOf('/') + 1));
+            String[] parts = uri.split("/");
+            return Long.parseLong(parts[parts.length - 1]);
         } catch (Exception e) {
             log.warn("Failed to extract event ID from URI: {}", uri);
             return -1L;
@@ -468,36 +502,6 @@ public class EventManagementServiceImpl implements EventManagementService {
         return events;
     }
 
-    private void validateUserEventAccess(Long userId, Event event) {
-        if (!event.getInitiator().getId().equals(userId)) {
-            throw new AccessDeniedException("User is not authorized to modify this event");
-        }
-    }
-
-    private void validateEventModificationTime(Event event) {
-        if (event.getEventDate().isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_EVENT))) {
-            throw new DataConflictException("Event cannot be modified less than " + MIN_HOURS_BEFORE_EVENT + " hours before start");
-        }
-    }
-
-    private void validateEventModificationTime(LocalDateTime eventDate) {
-        if (eventDate == null) {
-            throw new ValidationException("Event date cannot be null");
-        }
-        if (eventDate.isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_EVENT))) {
-            throw new DataConflictException("Event must be at least " + MIN_HOURS_BEFORE_EVENT + " hours in the future");
-        }
-    }
-
-    private void validateAdminEventModificationTime(LocalDateTime eventDate) {
-        if (eventDate == null) {
-            throw new ValidationException("Event date cannot be null");
-        }
-        if (eventDate.isBefore(LocalDateTime.now().plusHours(ADMIN_MIN_HOURS_BEFORE_EVENT))) {
-            throw new DataConflictException("Event must be at least " + ADMIN_MIN_HOURS_BEFORE_EVENT + " hours in the future for admin updates");
-        }
-    }
-
     private void validateAdminEventUpdate(Event event, UpdateEventAdminRequest request) {
         if (request.getStateAction() == UpdateEventAdminRequest.AdminAction.PUBLISH_EVENT) {
             if (Event.EventStatus.PUBLISHED.equals(event.getStatus())) {
@@ -506,9 +510,6 @@ public class EventManagementServiceImpl implements EventManagementService {
             if (Event.EventStatus.CANCELED.equals(event.getStatus())) {
                 throw new DataConflictException("Cannot publish canceled event");
             }
-            if (!Event.EventStatus.PENDING.equals(event.getStatus())) {
-                throw new DataConflictException("Only pending events can be published");
-            }
         }
 
         if (request.getStateAction() == UpdateEventAdminRequest.AdminAction.REJECT_EVENT) {
@@ -516,43 +517,12 @@ public class EventManagementServiceImpl implements EventManagementService {
                 throw new DataConflictException("Cannot reject published event");
             }
         }
-    }
 
-    private void validateParticipationUpdate(List<EventParticipation> participations, Long eventId) {
-        for (EventParticipation participation : participations) {
-            if (!participation.getEvent().getId().equals(eventId)) {
-                throw new DataConflictException("Participation does not belong to the specified event");
+        if (request.getEventDate() != null) {
+            LocalDateTime newEventDate = parseDateTimeString(request.getEventDate());
+            if (newEventDate.isBefore(LocalDateTime.now().plusHours(ADMIN_MIN_HOURS_BEFORE_EVENT))) {
+                throw new DataConflictException("Event must be at least " + ADMIN_MIN_HOURS_BEFORE_EVENT + " hours in the future for admin updates");
             }
-            if (!EventParticipation.ParticipationStatus.PENDING.equals(participation.getStatus())) {
-                throw new DataConflictException("Cannot update non-pending participation request");
-            }
-        }
-    }
-
-    private void processUserStateAction(Event event, UpdateEventUserRequest.UserAction action) {
-        switch (action) {
-            case CANCEL_REVIEW:
-                event.setStatus(Event.EventStatus.CANCELED);
-                break;
-            case SEND_TO_REVIEW:
-                event.setStatus(Event.EventStatus.PENDING);
-                break;
-            default:
-                throw new ValidationException("Unknown user action: " + action);
-        }
-    }
-
-    private void processAdminStateAction(Event event, UpdateEventAdminRequest.AdminAction action) {
-        switch (action) {
-            case PUBLISH_EVENT:
-                event.setStatus(Event.EventStatus.PUBLISHED);
-                event.setPublicationDate(LocalDateTime.now());
-                break;
-            case REJECT_EVENT:
-                event.setStatus(Event.EventStatus.CANCELED);
-                break;
-            default:
-                throw new ValidationException("Unknown admin action: " + action);
         }
     }
 
@@ -578,13 +548,15 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         if (request.getEventDate() != null) {
             LocalDateTime newEventDate = parseDateTimeString(request.getEventDate());
-            validateEventModificationTime(newEventDate);
+            if (newEventDate.isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_EVENT))) {
+                throw new DataConflictException("Event must be at least " + MIN_HOURS_BEFORE_EVENT + " hours in the future");
+            }
             event.setEventDate(newEventDate);
         }
 
         if (request.getCategory() != null) {
             EventCategory newCategory = categoryRepository.findById(request.getCategory())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategory()));
             event.setCategory(newCategory);
         }
 
@@ -596,7 +568,14 @@ public class EventManagementServiceImpl implements EventManagementService {
         }
 
         if (request.getStateAction() != null) {
-            processUserStateAction(event, request.getStateAction());
+            switch (request.getStateAction()) {
+                case CANCEL_REVIEW:
+                    event.setStatus(Event.EventStatus.CANCELED);
+                    break;
+                case SEND_TO_REVIEW:
+                    event.setStatus(Event.EventStatus.PENDING);
+                    break;
+            }
         }
     }
 
@@ -622,13 +601,15 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         if (request.getEventDate() != null) {
             LocalDateTime newEventDate = parseDateTimeString(request.getEventDate());
-            validateAdminEventModificationTime(newEventDate);
+            if (newEventDate.isBefore(LocalDateTime.now().plusHours(ADMIN_MIN_HOURS_BEFORE_EVENT))) {
+                throw new DataConflictException("Event must be at least " + ADMIN_MIN_HOURS_BEFORE_EVENT + " hours in the future for admin updates");
+            }
             event.setEventDate(newEventDate);
         }
 
         if (request.getCategory() != null) {
             EventCategory newCategory = categoryRepository.findById(request.getCategory())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategory()));
             event.setCategory(newCategory);
         }
 
@@ -641,7 +622,15 @@ public class EventManagementServiceImpl implements EventManagementService {
         }
 
         if (request.getStateAction() != null) {
-            processAdminStateAction(event, request.getStateAction());
+            switch (request.getStateAction()) {
+                case PUBLISH_EVENT:
+                    event.setStatus(Event.EventStatus.PUBLISHED);
+                    event.setPublicationDate(LocalDateTime.now());
+                    break;
+                case REJECT_EVENT:
+                    event.setStatus(Event.EventStatus.CANCELED);
+                    break;
+            }
         }
     }
 }

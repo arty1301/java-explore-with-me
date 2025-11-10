@@ -180,9 +180,15 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         log.warn("HTTP message not readable: {}", ex.getMessage());
+
+        String message = "Malformed JSON request";
+        if (ex.getMessage() != null && ex.getMessage().contains("java.time.LocalDateTime")) {
+            message = "Invalid date format. Expected: yyyy-MM-dd HH:mm:ss";
+        }
+
         return new ApiError(
                 Collections.emptyList(),
-                "Malformed JSON request",
+                message,
                 "Incorrectly made request.",
                 "BAD_REQUEST",
                 LocalDateTime.now()

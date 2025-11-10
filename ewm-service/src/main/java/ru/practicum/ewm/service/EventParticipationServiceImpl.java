@@ -45,7 +45,7 @@ public class EventParticipationServiceImpl implements EventParticipationService 
         Optional<EventParticipation> existingParticipation = participationRepository
                 .findByEventIdAndRequesterId(eventId, userId);
         if (existingParticipation.isPresent()) {
-            throw new DataConflictException("Participation request already exists for this event");
+            throw new DataConflictException("You have already submitted a participation request for this event");
         }
 
         EventParticipation.ParticipationStatus initialStatus = determineInitialStatus(event);
@@ -85,7 +85,13 @@ public class EventParticipationServiceImpl implements EventParticipationService 
         EventParticipation participation = participationRepository.findById(requestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Participation request not found with ID: " + requestId));
 
-        validateParticipationCancellation(userId, participation);
+        if (!participation.getRequester().getId().equals(userId)) {
+            throw new AccessDeniedException("User cannot cancel another user's participation request");
+        }
+
+        if (EventParticipation.ParticipationStatus.CONFIRMED.equals(participation.getStatus())) {
+            throw new DataConflictException("Cannot cancel already confirmed participation request");
+        }
 
         participation.setStatus(EventParticipation.ParticipationStatus.CANCELED);
         EventParticipation updatedParticipation = participationRepository.save(participation);
@@ -125,17 +131,5 @@ public class EventParticipationServiceImpl implements EventParticipationService 
         }
 
         return EventParticipation.ParticipationStatus.PENDING;
-    }
-
-    private void validateParticipationCancellation(Long userId, EventParticipation participation) {
-        if (!participation.getRequester().getId().equals(userId)) {
-            throw new AccessDeniedException("User cannot cancel another user's participation request");
-        }
-
-        if (EventParticipation.ParticipationStatus.CONFIRMED.equals(participation.getStatus())) {
-            throw new DataConflictException("Cannot cancel already confirmed participation request");
-        }
-
-        log.debug("Participation cancellation validation passed for request ID: {}", participation.getId());
     }
 }

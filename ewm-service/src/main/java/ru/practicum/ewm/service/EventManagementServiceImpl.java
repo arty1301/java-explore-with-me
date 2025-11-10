@@ -48,7 +48,10 @@ public class EventManagementServiceImpl implements EventManagementService {
         EventCategory category = categoryRepository.findById(request.getCategory())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategory()));
 
-        validateEventCreationTime(request.getEventDate());
+        validateEventRequest(request);
+
+        LocalDateTime eventDateTime = parseDateTimeString(request.getEventDate());
+        validateEventCreationTime(eventDateTime);
 
         Event newEvent = eventMapper.convertToEntity(request);
         newEvent.setInitiator(initiator);
@@ -69,7 +72,6 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         return result;
     }
-
     @Override
     @Transactional(readOnly = true)
     public List<EventShortDto> findPublicEvents(String searchText, List<Long> categories, Boolean paid,
@@ -334,11 +336,7 @@ public class EventManagementServiceImpl implements EventManagementService {
         return dto;
     }
 
-    private void validateEventCreationTime(String eventDateString) {
-        LocalDateTime eventDateTime = parseDateTimeString(eventDateString);
-        if (eventDateTime == null) {
-            throw new ValidationException("Event date cannot be null");
-        }
+    private void validateEventCreationTime(LocalDateTime eventDateTime) {
         if (eventDateTime.isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_EVENT))) {
             throw new ValidationException("Event must be scheduled at least " + MIN_HOURS_BEFORE_EVENT + " hours from now");
         }
@@ -351,7 +349,7 @@ public class EventManagementServiceImpl implements EventManagementService {
         try {
             return LocalDateTime.parse(dateTimeString, DATE_TIME_FORMATTER);
         } catch (DateTimeParseException e) {
-            throw new ValidationException("Invalid datetime format. Expected: yyyy-MM-dd HH:mm:ss");
+            throw new ValidationException("Invalid datetime format. Expected: yyyy-MM-dd HH:mm:ss. Received: " + dateTimeString);
         }
     }
 

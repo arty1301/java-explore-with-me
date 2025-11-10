@@ -22,7 +22,7 @@ public class PersonalParticipationController {
     @ResponseStatus(HttpStatus.CREATED)
     public ParticipationRequestDto addParticipationRequest(
             @PathVariable Long userId,
-            @RequestParam Long eventId) {
+            @RequestParam(required = true) Long eventId) {
 
         log.info("User {}: Creating participation request for event ID: {}", userId, eventId);
         ParticipationRequestDto participation = participationService.createParticipationRequest(userId, eventId);

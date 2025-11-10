@@ -36,7 +36,7 @@ public interface EventMapper {
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "initiator", ignore = true)
     @Mapping(target = "location", ignore = true)
-    @Mapping(source = "eventDate", target = "eventDate", dateFormat = "yyyy-MM-dd HH:mm:ss")
+    @Mapping(source = "eventDate", target = "eventDate", qualifiedByName = "stringToLocalDateTime")
     Event convertToEntity(NewEventDto request);
 
     @Named("formatLocalDateTime")
@@ -46,6 +46,15 @@ public interface EventMapper {
         }
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return dateTime.format(formatter);
+    }
+
+    @Named("stringToLocalDateTime")
+    default LocalDateTime stringToLocalDateTime(String dateTimeString) {
+        if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
+            return null;
+        }
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return LocalDateTime.parse(dateTimeString, formatter);
     }
 
     @Named("eventStatusToString")

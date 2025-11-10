@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import ru.practicum.ewm.dto.ApiError;
 
 import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
@@ -22,9 +23,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleResourceNotFound(ResourceNotFoundException ex) {
+    public ApiError handleResourceNotFound(ResourceNotFoundException ex) {
         log.warn("Resource not found: {}", ex.getMessage());
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 ex.getMessage(),
                 "The required object was not found.",
@@ -35,9 +36,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleDataConflict(DataConflictException ex) {
+    public ApiError handleDataConflict(DataConflictException ex) {
         log.warn("Data conflict: {}", ex.getMessage());
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 ex.getMessage(),
                 "For the requested operation the conditions are not met.",
@@ -48,9 +49,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ValidationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleValidationException(ValidationException ex) {
+    public ApiError handleValidationException(ValidationException ex) {
         log.warn("Validation error: {}", ex.getMessage());
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 ex.getMessage(),
                 "Incorrectly made request.",
@@ -61,9 +62,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ErrorResponse handleAccessDenied(AccessDeniedException ex) {
+    public ApiError handleAccessDenied(AccessDeniedException ex) {
         log.warn("Access denied: {}", ex.getMessage());
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 ex.getMessage(),
                 "For the requested operation the conditions are not met.",
@@ -74,9 +75,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ServiceUnavailableException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ErrorResponse handleServiceUnavailable(ServiceUnavailableException ex) {
+    public ApiError handleServiceUnavailable(ServiceUnavailableException ex) {
         log.error("Service unavailable: {}", ex.getMessage());
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 ex.getMessage(),
                 "Service unavailable",
@@ -87,14 +88,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+    public ApiError handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
         String errorMessage = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> String.format("Field '%s': %s", error.getField(), error.getDefaultMessage()))
                 .findFirst()
                 .orElse("Validation failed");
 
         log.warn("Method argument validation failed: {}", errorMessage);
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 errorMessage,
                 "Incorrectly made request.",
@@ -105,7 +106,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleConstraintViolation(ConstraintViolationException ex) {
+    public ApiError handleConstraintViolation(ConstraintViolationException ex) {
         String errorMessage = ex.getConstraintViolations().stream()
                 .map(violation -> String.format("Parameter '%s': %s",
                         violation.getPropertyPath(), violation.getMessage()))
@@ -113,7 +114,7 @@ public class GlobalExceptionHandler {
                 .orElse("Constraint violation");
 
         log.warn("Constraint violation: {}", errorMessage);
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 errorMessage,
                 "Incorrectly made request.",
@@ -124,7 +125,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+    public ApiError handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String parameterName = ex.getParameter().getParameterName();
         String requiredType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
         String actualValue = ex.getValue() != null ? ex.getValue().toString() : "null";
@@ -135,7 +136,7 @@ public class GlobalExceptionHandler {
         );
 
         log.warn("Type mismatch: {}", errorMessage);
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 errorMessage,
                 "Incorrectly made request.",
@@ -146,12 +147,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
-        String errorMessage = String.format("Failed to convert value of type java.lang.String to required type long; nested exception is java.lang.NumberFormatException: For input string: %s",
-                ex.getParameterName());
+    public ApiError handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
+        String errorMessage = String.format("Required request parameter '%s' is not present", ex.getParameterName());
 
         log.warn("Missing request parameter: {}", errorMessage);
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 errorMessage,
                 "Incorrectly made request.",
@@ -162,9 +162,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleIllegalArgument(IllegalArgumentException ex) {
+    public ApiError handleIllegalArgument(IllegalArgumentException ex) {
         log.warn("Illegal argument: {}", ex.getMessage());
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 ex.getMessage(),
                 "Incorrectly made request.",
@@ -175,9 +175,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+    public ApiError handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
         log.warn("HTTP message not readable: {}", ex.getMessage());
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 "Malformed JSON request",
                 "Incorrectly made request.",
@@ -187,10 +187,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+    public ResponseEntity<ApiError> handleGenericException(Exception ex) {
         log.error("Unexpected error occurred: {}", ex.getMessage(), ex);
 
-        ErrorResponse errorResponse = new ErrorResponse(
+        ApiError apiError = new ApiError(
                 Collections.emptyList(),
                 "An unexpected error occurred. Please try again later.",
                 "Internal Server Error",
@@ -198,85 +198,19 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiError);
     }
 
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+    public ApiError handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
         log.warn("Data integrity violation: {}", ex.getMessage());
-        return new ErrorResponse(
+        return new ApiError(
                 Collections.emptyList(),
                 "could not execute statement; SQL [n/a]; constraint [uq_category_name]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement",
                 "Integrity constraint has been violated.",
                 "CONFLICT",
                 LocalDateTime.now()
         );
-    }
-
-    // Внутренний класс ErrorResponse
-    public static class ErrorResponse {
-        private List<String> errors;
-        private String message;
-        private String reason;
-        private String status;
-        private LocalDateTime timestamp;
-
-        public ErrorResponse(List<String> errors, String message, String reason, String status, LocalDateTime timestamp) {
-            this.errors = errors;
-            this.message = message;
-            this.reason = reason;
-            this.status = status;
-            this.timestamp = timestamp;
-        }
-
-        public ErrorResponse(List<String> errors, String message, String reason, String status) {
-            this.errors = errors;
-            this.message = message;
-            this.reason = reason;
-            this.status = status;
-            this.timestamp = LocalDateTime.now();
-        }
-
-        // Getters and Setters
-        public List<String> getErrors() {
-            return errors;
-        }
-
-        public void setErrors(List<String> errors) {
-            this.errors = errors;
-        }
-
-        public String getMessage() {
-            return message;
-        }
-
-        public void setMessage(String message) {
-            this.message = message;
-        }
-
-        public String getReason() {
-            return reason;
-        }
-
-        public void setReason(String reason) {
-            this.reason = reason;
-        }
-
-        public String getStatus() {
-            return status;
-        }
-
-        public void setStatus(String status) {
-            this.status = status;
-        }
-
-        public LocalDateTime getTimestamp() {
-            return timestamp;
-        }
-
-        public void setTimestamp(LocalDateTime timestamp) {
-            this.timestamp = timestamp;
-        }
     }
 }

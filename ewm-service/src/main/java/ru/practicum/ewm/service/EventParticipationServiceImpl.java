@@ -103,7 +103,7 @@ public class EventParticipationServiceImpl implements EventParticipationService 
         if (event.getParticipantLimit() != null && event.getParticipantLimit() > 0) {
             Integer confirmedCount = participationRepository.countParticipationsByStatus(
                     event.getId(), EventParticipation.ParticipationStatus.CONFIRMED);
-            if (confirmedCount >= event.getParticipantLimit()) {
+            if (confirmedCount != null && confirmedCount >= event.getParticipantLimit()) {
                 throw new DataConflictException("Event participant limit reached");
             }
         }

@@ -29,13 +29,8 @@ public interface EventParticipationMapper {
         if (dateTime == null) {
             return null;
         }
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        String baseFormat = dateTime.format(formatter);
-
-        int nanos = dateTime.getNano();
-        int millis = nanos / 1_000_000;
-
-        return String.format("%s.%03d", baseFormat, millis);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+        return dateTime.format(formatter);
     }
 
     @Named("participationStatusToString")

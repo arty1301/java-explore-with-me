@@ -292,7 +292,13 @@ public class EventManagementServiceImpl implements EventManagementService {
         List<Event.EventStatus> eventStates = null;
         if (states != null && !states.isEmpty()) {
             eventStates = states.stream()
-                    .map(Event.EventStatus::valueOf)
+                    .map(state -> {
+                        try {
+                            return Event.EventStatus.valueOf(state);
+                        } catch (IllegalArgumentException e) {
+                            throw new ValidationException("Invalid event state: " + state);
+                        }
+                    })
                     .collect(Collectors.toList());
         }
 
@@ -436,6 +442,9 @@ public class EventManagementServiceImpl implements EventManagementService {
 
     private void validateEventCreationTime(String eventDateString) {
         LocalDateTime eventDateTime = parseDateTimeString(eventDateString);
+        if (eventDateTime == null) {
+            throw new ValidationException("Event date cannot be null");
+        }
         if (eventDateTime.isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_EVENT))) {
             throw new ValidationException("Event must be scheduled at least " + MIN_HOURS_BEFORE_EVENT + " hours from now");
         }
@@ -492,7 +501,7 @@ public class EventManagementServiceImpl implements EventManagementService {
             return true;
         }
         Integer confirmedCount = eventRepository.countConfirmedParticipations(event.getId());
-        return confirmedCount < participantLimit;
+        return confirmedCount == null || confirmedCount < participantLimit;
     }
 
     private Map<Long, Long> retrieveEventsViewCounts(List<Event> events) {
@@ -544,19 +553,25 @@ public class EventManagementServiceImpl implements EventManagementService {
 
     private void validateEventModificationTime(Event event) {
         if (event.getEventDate().isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_EVENT))) {
-            throw new ValidationException("Event cannot be modified less than " + MIN_HOURS_BEFORE_EVENT + " hours before start");
+            throw new DataConflictException("Event cannot be modified less than " + MIN_HOURS_BEFORE_EVENT + " hours before start");
         }
     }
 
     private void validateEventModificationTime(LocalDateTime eventDate) {
+        if (eventDate == null) {
+            throw new ValidationException("Event date cannot be null");
+        }
         if (eventDate.isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_EVENT))) {
-            throw new ValidationException("Event must be at least " + MIN_HOURS_BEFORE_EVENT + " hours in the future");
+            throw new DataConflictException("Event must be at least " + MIN_HOURS_BEFORE_EVENT + " hours in the future");
         }
     }
 
     private void validateAdminEventModificationTime(LocalDateTime eventDate) {
+        if (eventDate == null) {
+            throw new ValidationException("Event date cannot be null");
+        }
         if (eventDate.isBefore(LocalDateTime.now().plusHours(ADMIN_MIN_HOURS_BEFORE_EVENT))) {
-            throw new ValidationException("Event must be at least " + ADMIN_MIN_HOURS_BEFORE_EVENT + " hours in the future for admin updates");
+            throw new DataConflictException("Event must be at least " + ADMIN_MIN_HOURS_BEFORE_EVENT + " hours in the future for admin updates");
         }
     }
 
@@ -569,7 +584,7 @@ public class EventManagementServiceImpl implements EventManagementService {
                 throw new DataConflictException("Cannot publish canceled event");
             }
             if (!Event.EventStatus.PENDING.equals(event.getStatus())) {
-                throw new ValidationException("Only pending events can be published");
+                throw new DataConflictException("Only pending events can be published");
             }
         }
 
@@ -597,9 +612,7 @@ public class EventManagementServiceImpl implements EventManagementService {
                 event.setStatus(Event.EventStatus.CANCELED);
                 break;
             case SEND_TO_REVIEW:
-                if (Event.EventStatus.CANCELED.equals(event.getStatus())) {
-                    event.setStatus(Event.EventStatus.PENDING);
-                }
+                event.setStatus(Event.EventStatus.PENDING);
                 break;
             default:
                 throw new ValidationException("Unknown user action: " + action);

@@ -29,7 +29,7 @@ public interface EventParticipationMapper {
         if (dateTime == null) {
             return null;
         }
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return dateTime.format(formatter);
     }
 
@@ -43,7 +43,7 @@ public interface EventParticipationMapper {
             return null;
         }
         try {
-            return EventParticipation.ParticipationStatus.valueOf(status);
+            return EventParticipation.ParticipationStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
             return null;
         }

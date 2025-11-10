@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface EventCategoryRepository extends JpaRepository<EventCategory, Long> {
 
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END " +
-            "FROM EventCategory c WHERE c.name = :categoryName")
+            "FROM EventCategory c WHERE LOWER(c.name) = LOWER(:categoryName)")
     boolean existsByCategoryName(@Param("categoryName") String name);
 
     Page<EventCategory> findAllByOrderByIdAsc(Pageable pageable);
@@ -20,6 +20,6 @@ public interface EventCategoryRepository extends JpaRepository<EventCategory, Lo
     @Query("SELECT c FROM EventCategory c WHERE c.id = :id")
     Optional<EventCategory> findCategoryById(@Param("id") Long id);
 
-    @Query("SELECT c FROM EventCategory c WHERE c.name = :name")
+    @Query("SELECT c FROM EventCategory c WHERE LOWER(c.name) = LOWER(:name)")
     Optional<EventCategory> findByExactName(@Param("name") String name);
 }

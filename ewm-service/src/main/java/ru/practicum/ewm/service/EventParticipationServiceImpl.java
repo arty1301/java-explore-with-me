@@ -16,6 +16,7 @@ import ru.practicum.ewm.repository.PlatformUserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -40,6 +41,12 @@ public class EventParticipationServiceImpl implements EventParticipationService 
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with ID: " + eventId));
 
         validateParticipationRequest(requester, event);
+
+        Optional<EventParticipation> existingParticipation = participationRepository
+                .findByEventIdAndRequesterId(eventId, userId);
+        if (existingParticipation.isPresent()) {
+            throw new DataConflictException("Participation request already exists for this event");
+        }
 
         EventParticipation.ParticipationStatus initialStatus = determineInitialStatus(event);
 
@@ -94,10 +101,6 @@ public class EventParticipationServiceImpl implements EventParticipationService 
 
         if (!Event.EventStatus.PUBLISHED.equals(event.getStatus())) {
             throw new DataConflictException("Cannot participate in unpublished event");
-        }
-
-        if (participationRepository.existsParticipationByUserAndEvent(event.getId(), requester.getId())) {
-            throw new DataConflictException("User already has a participation request for this event");
         }
 
         if (event.getParticipantLimit() != null && event.getParticipantLimit() > 0) {

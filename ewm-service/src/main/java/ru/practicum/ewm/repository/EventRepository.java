@@ -62,4 +62,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     @Query("SELECT e FROM Event e WHERE e.id IN :eventIds")
     List<Event> findEventsByIdList(@Param("eventIds") List<Long> eventIds);
+
+    @Query("SELECT e FROM Event e WHERE e.status = 'PUBLISHED' " +
+            "AND e.eventDate > :currentTime " +
+            "ORDER BY e.eventDate ASC")
+    Page<Event> findUpcomingPublishedEvents(@Param("currentTime") LocalDateTime currentTime, Pageable pageable);
 }

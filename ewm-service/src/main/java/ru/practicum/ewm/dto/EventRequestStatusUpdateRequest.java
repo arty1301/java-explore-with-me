@@ -14,5 +14,4 @@ public class EventRequestStatusUpdateRequest {
 
     @NotNull(message = "Status cannot be null")
     private String status;
-
 }

@@ -35,6 +35,10 @@ public class EventCollectionServiceImpl implements EventCollectionService {
     public CompilationDto createCollection(NewCompilationDto request) {
         log.info("Creating new event compilation with title: {}", request.getTitle());
 
+        if (collectionRepository.existsByCollectionTitle(request.getTitle())) {
+            throw new ru.practicum.ewm.exception.DataConflictException("Compilation title must be unique: " + request.getTitle());
+        }
+
         Set<Event> compilationEvents = resolveEventSet(request.getEvents());
 
         EventCollection newCollection = collectionMapper.convertToEntity(request);
@@ -53,6 +57,11 @@ public class EventCollectionServiceImpl implements EventCollectionService {
 
         EventCollection existingCollection = collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event compilation not found with ID: " + collectionId));
+
+        if (request.getTitle() != null && !request.getTitle().equals(existingCollection.getTitle()) &&
+                collectionRepository.existsByCollectionTitle(request.getTitle())) {
+            throw new ru.practicum.ewm.exception.DataConflictException("Compilation title already exists: " + request.getTitle());
+        }
 
         applyCollectionUpdates(existingCollection, request);
 

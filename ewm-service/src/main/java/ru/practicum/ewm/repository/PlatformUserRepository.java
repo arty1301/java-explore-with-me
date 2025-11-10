@@ -13,7 +13,7 @@ import java.util.Optional;
 public interface PlatformUserRepository extends JpaRepository<PlatformUser, Long> {
 
     @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END " +
-            "FROM PlatformUser u WHERE u.email = :userEmail")
+            "FROM PlatformUser u WHERE LOWER(u.email) = LOWER(:userEmail)")
     boolean existsUserByEmail(@Param("userEmail") String email);
 
     @Query("SELECT u FROM PlatformUser u WHERE u.id IN :userIds ORDER BY u.id ASC")
@@ -22,6 +22,6 @@ public interface PlatformUserRepository extends JpaRepository<PlatformUser, Long
     @Query("SELECT u FROM PlatformUser u ORDER BY u.id ASC")
     Page<PlatformUser> findAllUsers(Pageable pageable);
 
-    @Query("SELECT u FROM PlatformUser u WHERE u.email = :email")
+    @Query("SELECT u FROM PlatformUser u WHERE LOWER(u.email) = LOWER(:email)")
     Optional<PlatformUser> findUserByEmail(@Param("email") String email);
 }

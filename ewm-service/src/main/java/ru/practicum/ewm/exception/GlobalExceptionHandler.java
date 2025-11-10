@@ -16,6 +16,7 @@ import jakarta.validation.ConstraintViolationException;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
@@ -89,14 +90,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        String errorMessage = ex.getBindingResult().getFieldErrors().stream()
+        List<String> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> String.format("Field '%s': %s", error.getField(), error.getDefaultMessage()))
-                .findFirst()
-                .orElse("Validation failed");
+                .collect(Collectors.toList());
+
+        String errorMessage = errors.isEmpty() ? "Validation failed" : errors.get(0);
 
         log.warn("Method argument validation failed: {}", errorMessage);
         return new ApiError(
-                Collections.emptyList(),
+                errors,
                 errorMessage,
                 "Incorrectly made request.",
                 "BAD_REQUEST",
@@ -107,15 +109,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConstraintViolationException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleConstraintViolation(ConstraintViolationException ex) {
-        String errorMessage = ex.getConstraintViolations().stream()
+        List<String> errors = ex.getConstraintViolations().stream()
                 .map(violation -> String.format("Parameter '%s': %s",
                         violation.getPropertyPath(), violation.getMessage()))
-                .findFirst()
-                .orElse("Constraint violation");
+                .collect(Collectors.toList());
+
+        String errorMessage = errors.isEmpty() ? "Constraint violation" : errors.get(0);
 
         log.warn("Constraint violation: {}", errorMessage);
         return new ApiError(
-                Collections.emptyList(),
+                errors,
                 errorMessage,
                 "Incorrectly made request.",
                 "BAD_REQUEST",
@@ -131,8 +134,8 @@ public class GlobalExceptionHandler {
         String actualValue = ex.getValue() != null ? ex.getValue().toString() : "null";
 
         String errorMessage = String.format(
-                "Failed to convert value of type java.lang.String to required type %s; nested exception is java.lang.NumberFormatException: For input string: %s",
-                requiredType, actualValue
+                "Failed to convert parameter '%s' with value '%s' to required type '%s'",
+                parameterName, actualValue, requiredType
         );
 
         log.warn("Type mismatch: {}", errorMessage);
@@ -205,9 +208,23 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     public ApiError handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
         log.warn("Data integrity violation: {}", ex.getMessage());
+
+        String message = "Integrity constraint violation";
+        if (ex.getMessage() != null) {
+            if (ex.getMessage().contains("uq_category_name")) {
+                message = "Category name already exists";
+            } else if (ex.getMessage().contains("uq_email")) {
+                message = "Email already exists";
+            } else if (ex.getMessage().contains("uq_compilation_name")) {
+                message = "Compilation title already exists";
+            } else if (ex.getMessage().contains("uq_request")) {
+                message = "Participation request already exists";
+            }
+        }
+
         return new ApiError(
                 Collections.emptyList(),
-                "could not execute statement; SQL [n/a]; constraint [uq_category_name]; nested exception is org.hibernate.exception.ConstraintViolationException: could not execute statement",
+                message,
                 "Integrity constraint has been violated.",
                 "CONFLICT",
                 LocalDateTime.now()

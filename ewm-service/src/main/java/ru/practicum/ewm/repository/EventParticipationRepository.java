@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import ru.practicum.ewm.model.EventParticipation;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface EventParticipationRepository extends JpaRepository<EventParticipation, Long> {
 
@@ -31,4 +32,8 @@ public interface EventParticipationRepository extends JpaRepository<EventPartici
 
     @Query("SELECT p FROM EventParticipation p WHERE p.id IN :participationIds")
     List<EventParticipation> findParticipationsByIdList(@Param("participationIds") List<Long> participationIds);
+
+    @Query("SELECT p FROM EventParticipation p WHERE p.event.id = :eventId AND p.requester.id = :userId")
+    Optional<EventParticipation> findByEventIdAndRequesterId(@Param("eventId") Long eventId,
+                                                             @Param("userId") Long userId);
 }

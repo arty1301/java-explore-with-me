@@ -11,6 +11,7 @@ import ru.practicum.ewm.dto.NewCategoryDto;
 import ru.practicum.ewm.exception.DataConflictException;
 import ru.practicum.ewm.exception.ResourceNotFoundException;
 import ru.practicum.ewm.mapper.EventCategoryMapper;
+import ru.practicum.ewm.model.Event;
 import ru.practicum.ewm.model.EventCategory;
 import ru.practicum.ewm.repository.EventCategoryRepository;
 import ru.practicum.ewm.repository.EventRepository;
@@ -50,7 +51,7 @@ public class EventCategoryServiceImpl implements EventCategoryService {
         EventCategory category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
-        List<?> eventsInCategory = eventRepository.findEventsByCategory(categoryId);
+        List<Event> eventsInCategory = eventRepository.findEventsByCategory(categoryId);
         if (!eventsInCategory.isEmpty()) {
             throw new DataConflictException("Cannot delete category with associated events. Category ID: " + categoryId);
         }

@@ -18,7 +18,7 @@ public interface EventCollectionRepository extends JpaRepository<EventCollection
     Optional<EventCollection> findCollectionWithEvents(@Param("collectionId") Long collectionId);
 
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END " +
-            "FROM EventCollection c WHERE c.title = :title")
+            "FROM EventCollection c WHERE LOWER(c.title) = LOWER(:title)")
     boolean existsByCollectionTitle(@Param("title") String title);
 
     @Query("SELECT c FROM EventCollection c ORDER BY c.id ASC")

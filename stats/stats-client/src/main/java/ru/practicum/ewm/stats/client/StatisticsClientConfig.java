@@ -10,4 +10,11 @@ import java.time.Duration;
 @Configuration
 public class StatisticsClientConfig {
 
+    @Bean
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        return builder
+                .setConnectTimeout(Duration.ofSeconds(5))
+                .setReadTimeout(Duration.ofSeconds(10))
+                .build();
+    }
 }

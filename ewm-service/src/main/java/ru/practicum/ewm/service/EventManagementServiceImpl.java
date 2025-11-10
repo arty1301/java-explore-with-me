@@ -56,12 +56,28 @@ public class EventManagementServiceImpl implements EventManagementService {
         validateEventCreationTime(request.getEventDate());
 
         Event newEvent = eventMapper.convertToEntity(request);
-        configureEventDefaults(newEvent, request);
 
         newEvent.setInitiator(initiator);
         newEvent.setCategory(category);
         newEvent.setCreationDate(LocalDateTime.now());
         newEvent.setStatus(Event.EventStatus.PENDING);
+
+        if (request.getLocation() != null) {
+            EventLocation location = new EventLocation();
+            location.setLatitude(request.getLocation().getLat());
+            location.setLongitude(request.getLocation().getLon());
+            newEvent.setLocation(location);
+        }
+
+        if (newEvent.getPaid() == null) {
+            newEvent.setPaid(false);
+        }
+        if (newEvent.getParticipantLimit() == null) {
+            newEvent.setParticipantLimit(0);
+        }
+        if (newEvent.getRequestModeration() == null) {
+            newEvent.setRequestModeration(true);
+        }
 
         Event savedEvent = eventRepository.save(newEvent);
         log.info("Successfully created event with ID: {} for user ID: {}", savedEvent.getId(), userId);
@@ -126,6 +142,7 @@ public class EventManagementServiceImpl implements EventManagementService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public EventFullDto getUserEventDetails(Long userId, Long eventId) {
         log.info("Retrieving event details for user ID: {}, event ID: {}", userId, eventId);
 
@@ -154,7 +171,43 @@ public class EventManagementServiceImpl implements EventManagementService {
             throw new DataConflictException("Only pending or canceled events can be modified");
         }
 
-        applyUserEventUpdates(event, request);
+        if (request.getAnnotation() != null) {
+            event.setAnnotation(request.getAnnotation());
+        }
+        if (request.getDescription() != null) {
+            event.setDescription(request.getDescription());
+        }
+        if (request.getTitle() != null) {
+            event.setTitle(request.getTitle());
+        }
+        if (request.getPaid() != null) {
+            event.setPaid(request.getPaid());
+        }
+        if (request.getParticipantLimit() != null) {
+            event.setParticipantLimit(request.getParticipantLimit());
+        }
+        if (request.getRequestModeration() != null) {
+            event.setRequestModeration(request.getRequestModeration());
+        }
+
+        if (request.getEventDate() != null) {
+            LocalDateTime newEventDate = parseDateTimeString(request.getEventDate());
+            validateEventModificationTime(newEventDate);
+            event.setEventDate(newEventDate);
+        }
+
+        if (request.getCategory() != null) {
+            EventCategory newCategory = categoryRepository.findById(request.getCategory())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+            event.setCategory(newCategory);
+        }
+
+        if (request.getLocation() != null) {
+            EventLocation location = new EventLocation();
+            location.setLatitude(request.getLocation().getLat());
+            location.setLongitude(request.getLocation().getLon());
+            event.setLocation(location);
+        }
 
         if (request.getStateAction() != null) {
             processUserStateAction(event, request.getStateAction());
@@ -263,7 +316,45 @@ public class EventManagementServiceImpl implements EventManagementService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with ID: " + eventId));
 
         validateAdminEventUpdate(event, request);
-        applyAdminEventUpdates(event, request);
+
+        if (request.getAnnotation() != null) {
+            event.setAnnotation(request.getAnnotation());
+        }
+        if (request.getDescription() != null) {
+            event.setDescription(request.getDescription());
+        }
+        if (request.getTitle() != null) {
+            event.setTitle(request.getTitle());
+        }
+        if (request.getPaid() != null) {
+            event.setPaid(request.getPaid());
+        }
+        if (request.getParticipantLimit() != null) {
+            event.setParticipantLimit(request.getParticipantLimit());
+        }
+        if (request.getRequestModeration() != null) {
+            event.setRequestModeration(request.getRequestModeration());
+        }
+
+        if (request.getEventDate() != null) {
+            LocalDateTime newEventDate = parseDateTimeString(request.getEventDate());
+            validateAdminEventModificationTime(newEventDate);
+            event.setEventDate(newEventDate);
+        }
+
+        if (request.getCategory() != null) {
+            EventCategory newCategory = categoryRepository.findById(request.getCategory())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
+            event.setCategory(newCategory);
+        }
+
+        if (request.getLocation() != null) {
+            if (event.getLocation() == null) {
+                event.setLocation(new EventLocation());
+            }
+            event.getLocation().setLatitude(request.getLocation().getLat());
+            event.getLocation().setLongitude(request.getLocation().getLon());
+        }
 
         if (request.getStateAction() != null) {
             processAdminStateAction(event, request.getStateAction());
@@ -343,23 +434,11 @@ public class EventManagementServiceImpl implements EventManagementService {
         return dto;
     }
 
-    // Остальные вспомогательные методы остаются без изменений...
     private void validateEventCreationTime(String eventDateString) {
         LocalDateTime eventDateTime = parseDateTimeString(eventDateString);
         if (eventDateTime.isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_EVENT))) {
             throw new ValidationException("Event must be scheduled at least " + MIN_HOURS_BEFORE_EVENT + " hours from now");
         }
-    }
-
-    private void configureEventDefaults(Event event, NewEventDto request) {
-        if (request.getPaid() == null) event.setPaid(false);
-        if (request.getParticipantLimit() == null) event.setParticipantLimit(0);
-        if (request.getRequestModeration() == null) event.setRequestModeration(true);
-
-        EventLocation location = new EventLocation();
-        location.setLatitude(request.getLocation().getLat());
-        location.setLongitude(request.getLocation().getLon());
-        event.setLocation(location);
     }
 
     private void recordEndpointAccess(HttpServletRequest request) {
@@ -457,92 +536,6 @@ public class EventManagementServiceImpl implements EventManagementService {
         return events;
     }
 
-    private void applyUserEventUpdates(Event event, UpdateEventUserRequest request) {
-        if (request.getAnnotation() != null) event.setAnnotation(request.getAnnotation());
-        if (request.getDescription() != null) event.setDescription(request.getDescription());
-        if (request.getTitle() != null) event.setTitle(request.getTitle());
-        if (request.getPaid() != null) event.setPaid(request.getPaid());
-        if (request.getParticipantLimit() != null) event.setParticipantLimit(request.getParticipantLimit());
-        if (request.getRequestModeration() != null) event.setRequestModeration(request.getRequestModeration());
-
-        if (request.getEventDate() != null) {
-            LocalDateTime newEventDate = parseDateTimeString(request.getEventDate());
-            validateEventModificationTime(newEventDate);
-            event.setEventDate(newEventDate);
-        }
-
-        if (request.getCategory() != null) {
-            EventCategory category = categoryRepository.findById(request.getCategory())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
-            event.setCategory(category);
-        }
-
-        if (request.getLocation() != null) {
-            EventLocation location = new EventLocation();
-            location.setLatitude(request.getLocation().getLat());
-            location.setLongitude(request.getLocation().getLon());
-            event.setLocation(location);
-        }
-    }
-
-    private void applyAdminEventUpdates(Event event, UpdateEventAdminRequest request) {
-        if (request.getAnnotation() != null) event.setAnnotation(request.getAnnotation());
-        if (request.getDescription() != null) event.setDescription(request.getDescription());
-        if (request.getTitle() != null) event.setTitle(request.getTitle());
-        if (request.getPaid() != null) event.setPaid(request.getPaid());
-        if (request.getParticipantLimit() != null) event.setParticipantLimit(request.getParticipantLimit());
-        if (request.getRequestModeration() != null) event.setRequestModeration(request.getRequestModeration());
-
-        if (request.getEventDate() != null) {
-            LocalDateTime newEventDate = parseDateTimeString(request.getEventDate());
-            validateAdminEventModificationTime(newEventDate);
-            event.setEventDate(newEventDate);
-        }
-
-        if (request.getCategory() != null) {
-            EventCategory category = categoryRepository.findById(request.getCategory())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found"));
-            event.setCategory(category);
-        }
-
-        if (request.getLocation() != null) {
-            if (event.getLocation() == null) {
-                event.setLocation(new EventLocation());
-            }
-            event.getLocation().setLatitude(request.getLocation().getLat());
-            event.getLocation().setLongitude(request.getLocation().getLon());
-        }
-    }
-
-    private void processUserStateAction(Event event, UpdateEventUserRequest.UserAction action) {
-        switch (action) {
-            case CANCEL_REVIEW:
-                event.setStatus(Event.EventStatus.CANCELED);
-                break;
-            case SEND_TO_REVIEW:
-                if (Event.EventStatus.CANCELED.equals(event.getStatus())) {
-                    event.setStatus(Event.EventStatus.PENDING);
-                }
-                break;
-            default:
-                throw new ValidationException("Unknown user action: " + action);
-        }
-    }
-
-    private void processAdminStateAction(Event event, UpdateEventAdminRequest.AdminAction action) {
-        switch (action) {
-            case PUBLISH_EVENT:
-                event.setStatus(Event.EventStatus.PUBLISHED);
-                event.setPublicationDate(LocalDateTime.now());
-                break;
-            case REJECT_EVENT:
-                event.setStatus(Event.EventStatus.CANCELED);
-                break;
-            default:
-                throw new ValidationException("Unknown admin action: " + action);
-        }
-    }
-
     private void validateUserEventAccess(Long userId, Event event) {
         if (!event.getInitiator().getId().equals(userId)) {
             throw new AccessDeniedException("User is not authorized to modify this event");
@@ -595,6 +588,35 @@ public class EventManagementServiceImpl implements EventManagementService {
             if (!EventParticipation.ParticipationStatus.PENDING.equals(participation.getStatus())) {
                 throw new DataConflictException("Cannot update non-pending participation request");
             }
+        }
+    }
+
+    private void processUserStateAction(Event event, UpdateEventUserRequest.UserAction action) {
+        switch (action) {
+            case CANCEL_REVIEW:
+                event.setStatus(Event.EventStatus.CANCELED);
+                break;
+            case SEND_TO_REVIEW:
+                if (Event.EventStatus.CANCELED.equals(event.getStatus())) {
+                    event.setStatus(Event.EventStatus.PENDING);
+                }
+                break;
+            default:
+                throw new ValidationException("Unknown user action: " + action);
+        }
+    }
+
+    private void processAdminStateAction(Event event, UpdateEventAdminRequest.AdminAction action) {
+        switch (action) {
+            case PUBLISH_EVENT:
+                event.setStatus(Event.EventStatus.PUBLISHED);
+                event.setPublicationDate(LocalDateTime.now());
+                break;
+            case REJECT_EVENT:
+                event.setStatus(Event.EventStatus.CANCELED);
+                break;
+            default:
+                throw new ValidationException("Unknown admin action: " + action);
         }
     }
 }

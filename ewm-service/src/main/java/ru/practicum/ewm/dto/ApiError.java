@@ -18,7 +18,7 @@ public class ApiError {
     private String status;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    private LocalDateTime timestamp;
+    private LocalDateTime timestamp = LocalDateTime.now();
 
     public ApiError(List<String> errors, String message, String reason, String status) {
         this.errors = errors;

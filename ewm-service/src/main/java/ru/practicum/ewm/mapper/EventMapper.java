@@ -16,11 +16,12 @@ public interface EventMapper {
 
     @Mapping(source = "category", target = "category")
     @Mapping(source = "initiator", target = "initiator")
-    @Mapping(source = "location", target = "location")
+    @Mapping(source = "location.latitude", target = "location.lat")
+    @Mapping(source = "location.longitude", target = "location.lon")
     @Mapping(source = "creationDate", target = "createdOn", qualifiedByName = "formatLocalDateTime")
     @Mapping(source = "eventDate", target = "eventDate", qualifiedByName = "formatLocalDateTime")
     @Mapping(source = "publicationDate", target = "publishedOn", qualifiedByName = "formatLocalDateTime")
-    @Mapping(source = "status", target = "state", qualifiedByName = "eventStatusToString")
+    @Mapping(source = "status", target = "state")
     EventFullDto convertToDetailedDto(Event event);
 
     @Mapping(source = "category", target = "category")
@@ -35,7 +36,8 @@ public interface EventMapper {
     @Mapping(target = "views", ignore = true)
     @Mapping(target = "category", ignore = true)
     @Mapping(target = "initiator", ignore = true)
-    @Mapping(target = "location", ignore = true)
+    @Mapping(source = "location.lat", target = "location.latitude")
+    @Mapping(source = "location.lon", target = "location.longitude")
     @Mapping(source = "eventDate", target = "eventDate", qualifiedByName = "stringToLocalDateTime")
     Event convertToEntity(NewEventDto request);
 
@@ -55,10 +57,5 @@ public interface EventMapper {
         }
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         return LocalDateTime.parse(dateTimeString, formatter);
-    }
-
-    @Named("eventStatusToString")
-    default String eventStatusToString(Event.EventStatus status) {
-        return status != null ? status.name() : null;
     }
 }

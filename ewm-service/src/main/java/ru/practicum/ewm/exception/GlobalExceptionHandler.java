@@ -30,8 +30,7 @@ public class GlobalExceptionHandler {
                 Collections.emptyList(),
                 ex.getMessage(),
                 "The required object was not found.",
-                "NOT_FOUND",
-                LocalDateTime.now()
+                "NOT_FOUND"
         );
     }
 
@@ -43,8 +42,7 @@ public class GlobalExceptionHandler {
                 Collections.emptyList(),
                 ex.getMessage(),
                 "For the requested operation the conditions are not met.",
-                "CONFLICT",
-                LocalDateTime.now()
+                "CONFLICT"
         );
     }
 
@@ -56,8 +54,7 @@ public class GlobalExceptionHandler {
                 Collections.emptyList(),
                 ex.getMessage(),
                 "Incorrectly made request.",
-                "BAD_REQUEST",
-                LocalDateTime.now()
+                "BAD_REQUEST"
         );
     }
 
@@ -69,21 +66,7 @@ public class GlobalExceptionHandler {
                 Collections.emptyList(),
                 ex.getMessage(),
                 "For the requested operation the conditions are not met.",
-                "FORBIDDEN",
-                LocalDateTime.now()
-        );
-    }
-
-    @ExceptionHandler(ServiceUnavailableException.class)
-    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ApiError handleServiceUnavailable(ServiceUnavailableException ex) {
-        log.error("Service unavailable: {}", ex.getMessage());
-        return new ApiError(
-                Collections.emptyList(),
-                ex.getMessage(),
-                "Service unavailable",
-                "SERVICE_UNAVAILABLE",
-                LocalDateTime.now()
+                "FORBIDDEN"
         );
     }
 
@@ -101,8 +84,7 @@ public class GlobalExceptionHandler {
                 errors,
                 errorMessage,
                 "Incorrectly made request.",
-                "BAD_REQUEST",
-                LocalDateTime.now()
+                "BAD_REQUEST"
         );
     }
 
@@ -121,30 +103,22 @@ public class GlobalExceptionHandler {
                 errors,
                 errorMessage,
                 "Incorrectly made request.",
-                "BAD_REQUEST",
-                LocalDateTime.now()
+                "BAD_REQUEST"
         );
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        String parameterName = ex.getParameter().getParameterName();
-        String requiredType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
-        String actualValue = ex.getValue() != null ? ex.getValue().toString() : "null";
-
-        String errorMessage = String.format(
-                "Failed to convert parameter '%s' with value '%s' to required type '%s'",
-                parameterName, actualValue, requiredType
-        );
+        String errorMessage = String.format("Failed to convert parameter '%s' with value '%s' to required type",
+                ex.getName(), ex.getValue());
 
         log.warn("Type mismatch: {}", errorMessage);
         return new ApiError(
                 Collections.emptyList(),
                 errorMessage,
                 "Incorrectly made request.",
-                "BAD_REQUEST",
-                LocalDateTime.now()
+                "BAD_REQUEST"
         );
     }
 
@@ -158,21 +132,7 @@ public class GlobalExceptionHandler {
                 Collections.emptyList(),
                 errorMessage,
                 "Incorrectly made request.",
-                "BAD_REQUEST",
-                LocalDateTime.now()
-        );
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiError handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("Illegal argument: {}", ex.getMessage());
-        return new ApiError(
-                Collections.emptyList(),
-                ex.getMessage(),
-                "Incorrectly made request.",
-                "BAD_REQUEST",
-                LocalDateTime.now()
+                "BAD_REQUEST"
         );
     }
 
@@ -182,16 +142,19 @@ public class GlobalExceptionHandler {
         log.warn("HTTP message not readable: {}", ex.getMessage());
 
         String message = "Malformed JSON request";
-        if (ex.getMessage() != null && ex.getMessage().contains("java.time.LocalDateTime")) {
-            message = "Invalid date format. Expected: yyyy-MM-dd HH:mm:ss";
+        if (ex.getMessage() != null) {
+            if (ex.getMessage().contains("java.time.LocalDateTime")) {
+                message = "Invalid date format. Expected: yyyy-MM-dd HH:mm:ss";
+            } else if (ex.getMessage().contains("Invalid numeric value")) {
+                message = "Invalid numeric value. Expected a number without quotes";
+            }
         }
 
         return new ApiError(
                 Collections.emptyList(),
                 message,
                 "Incorrectly made request.",
-                "BAD_REQUEST",
-                LocalDateTime.now()
+                "BAD_REQUEST"
         );
     }
 
@@ -203,37 +166,9 @@ public class GlobalExceptionHandler {
                 Collections.emptyList(),
                 "An unexpected error occurred. Please try again later.",
                 "Internal Server Error",
-                "INTERNAL_SERVER_ERROR",
-                LocalDateTime.now()
+                "INTERNAL_SERVER_ERROR"
         );
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiError);
-    }
-
-    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ApiError handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
-        log.warn("Data integrity violation: {}", ex.getMessage());
-
-        String message = "Integrity constraint violation";
-        if (ex.getMessage() != null) {
-            if (ex.getMessage().contains("uq_category_name")) {
-                message = "Category name already exists";
-            } else if (ex.getMessage().contains("uq_email")) {
-                message = "Email already exists";
-            } else if (ex.getMessage().contains("uq_compilation_name")) {
-                message = "Compilation title already exists";
-            } else if (ex.getMessage().contains("uq_request")) {
-                message = "Participation request already exists";
-            }
-        }
-
-        return new ApiError(
-                Collections.emptyList(),
-                message,
-                "Integrity constraint has been violated.",
-                "CONFLICT",
-                LocalDateTime.now()
-        );
     }
 }

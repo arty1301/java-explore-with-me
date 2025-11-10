@@ -3,8 +3,8 @@ package ru.practicum.ewm.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import ru.practicum.ewm.dto.UserDto;
-import ru.practicum.ewm.dto.UserBriefDto;
-import ru.practicum.ewm.dto.CreateUserRequest;
+import ru.practicum.ewm.dto.UserShortDto;
+import ru.practicum.ewm.dto.NewUserRequest;
 import ru.practicum.ewm.model.PlatformUser;
 
 @Mapper(componentModel = "spring")
@@ -12,10 +12,10 @@ public interface PlatformUserMapper {
 
     UserDto convertToDto(PlatformUser user);
 
-    UserBriefDto convertToBriefDto(PlatformUser user);
+    UserShortDto convertToBriefDto(PlatformUser user);
 
     @Mapping(target = "id", ignore = true)
-    PlatformUser convertToEntity(CreateUserRequest request);
+    PlatformUser convertToEntity(NewUserRequest request);
 
     @Mapping(target = "id", ignore = true)
     PlatformUser convertToEntity(UserDto dto);

@@ -2,25 +2,25 @@ package ru.practicum.ewm.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import ru.practicum.ewm.dto.EventCollectionDto;
-import ru.practicum.ewm.dto.CreateCollectionRequest;
+import ru.practicum.ewm.dto.CompilationDto;
+import ru.practicum.ewm.dto.NewCompilationDto;
 import ru.practicum.ewm.model.EventCollection;
 
 @Mapper(componentModel = "spring", uses = {EventMapper.class})
 public interface EventCollectionMapper {
 
     @Mapping(source = "events", target = "events")
-    EventCollectionDto convertToDto(EventCollection collection);
+    CompilationDto convertToDto(EventCollection collection);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "events", ignore = true)
-    EventCollection convertToEntity(CreateCollectionRequest request);
+    EventCollection convertToEntity(NewCompilationDto request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "events", ignore = true)
-    EventCollection convertToEntity(EventCollectionDto dto);
+    EventCollection convertToEntity(CompilationDto dto);
 
-    default EventCollection updateEntityFromRequest(ru.practicum.ewm.dto.UpdateCollectionRequest request, EventCollection entity) {
+    default EventCollection updateEntityFromRequest(ru.practicum.ewm.dto.UpdateCompilationRequest request, EventCollection entity) {
         if (request == null) {
             return entity;
         }

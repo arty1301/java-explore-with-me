@@ -8,9 +8,9 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EventCollectionDto {
+public class CompilationDto {
     private Long id;
     private String title;
     private Boolean pinned;
-    private Set<EventBriefDto> events;
+    private Set<EventShortDto> events;
 }

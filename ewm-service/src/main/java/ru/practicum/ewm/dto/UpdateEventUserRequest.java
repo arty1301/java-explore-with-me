@@ -22,7 +22,7 @@ public class UpdateEventUserRequest {
 
     private Boolean paid;
 
-    private LocationDto location;
+    private Location location;
 
     private Integer participantLimit;
 

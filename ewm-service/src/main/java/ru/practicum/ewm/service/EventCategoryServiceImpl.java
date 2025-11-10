@@ -6,8 +6,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.ewm.dto.EventCategoryDto;
-import ru.practicum.ewm.dto.CreateCategoryRequest;
+import ru.practicum.ewm.dto.CategoryDto;
+import ru.practicum.ewm.dto.NewCategoryDto;
 import ru.practicum.ewm.exception.DataConflictException;
 import ru.practicum.ewm.exception.ResourceNotFoundException;
 import ru.practicum.ewm.mapper.EventCategoryMapper;
@@ -29,7 +29,7 @@ public class EventCategoryServiceImpl implements EventCategoryService {
     private final EventCategoryMapper categoryMapper;
 
     @Override
-    public EventCategoryDto createCategory(CreateCategoryRequest request) {
+    public CategoryDto createCategory(NewCategoryDto request) {
         log.info("Creating new category with name: {}", request.getName());
 
         if (categoryRepository.existsByCategoryName(request.getName())) {
@@ -60,7 +60,7 @@ public class EventCategoryServiceImpl implements EventCategoryService {
     }
 
     @Override
-    public EventCategoryDto modifyCategory(Long categoryId, EventCategoryDto categoryDto) {
+    public CategoryDto modifyCategory(Long categoryId, CategoryDto categoryDto) {
         log.info("Updating category with ID: {}", categoryId);
 
         EventCategory existingCategory = categoryRepository.findById(categoryId)
@@ -80,7 +80,7 @@ public class EventCategoryServiceImpl implements EventCategoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventCategoryDto> retrieveCategories(int startingFrom, int pageSize) {
+    public List<CategoryDto> retrieveCategories(int startingFrom, int pageSize) {
         log.info("Retrieving categories starting from {}, page size: {}", startingFrom, pageSize);
 
         Pageable pageable = PageRequest.of(startingFrom / pageSize, pageSize);
@@ -93,7 +93,7 @@ public class EventCategoryServiceImpl implements EventCategoryService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventCategoryDto retrieveCategoryById(Long categoryId) {
+    public CategoryDto retrieveCategoryById(Long categoryId) {
         log.info("Retrieving category by ID: {}", categoryId);
 
         return categoryRepository.findCategoryById(categoryId)

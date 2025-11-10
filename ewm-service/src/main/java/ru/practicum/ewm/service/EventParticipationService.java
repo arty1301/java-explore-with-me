@@ -1,13 +1,13 @@
 package ru.practicum.ewm.service;
 
-import ru.practicum.ewm.dto.EventParticipationDto;
+import ru.practicum.ewm.dto.ParticipationRequestDto;
 
 import java.util.List;
 
 public interface EventParticipationService {
-    EventParticipationDto createParticipationRequest(Long userId, Long eventId);
+    ParticipationRequestDto createParticipationRequest(Long userId, Long eventId);
 
-    List<EventParticipationDto> getUserParticipationRequests(Long userId);
+    List<ParticipationRequestDto> getUserParticipationRequests(Long userId);
 
-    EventParticipationDto cancelParticipationRequest(Long userId, Long requestId);
+    ParticipationRequestDto cancelParticipationRequest(Long userId, Long requestId);
 }

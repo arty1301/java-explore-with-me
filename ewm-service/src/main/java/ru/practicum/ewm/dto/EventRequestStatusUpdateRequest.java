@@ -9,7 +9,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ParticipationStatusUpdateRequest {
+public class EventRequestStatusUpdateRequest {
     private List<Long> requestIds;
 
     @NotNull(message = "Status cannot be null")

@@ -6,15 +6,15 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EventDetailedDto {
+public class EventFullDto {
     private Long id;
     private String annotation;
-    private EventCategoryDto category;
+    private CategoryDto category;
     private Long confirmedRequests;
     private String createdOn;
     private String description;
     private String eventDate;
-    private UserBriefDto initiator;
+    private UserShortDto initiator;
     private Location location;
     private Boolean paid;
     private Integer participantLimit;

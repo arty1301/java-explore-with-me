@@ -3,7 +3,7 @@ package ru.practicum.ewm.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
-import ru.practicum.ewm.dto.EventParticipationDto;
+import ru.practicum.ewm.dto.ParticipationRequestDto;
 import ru.practicum.ewm.model.EventParticipation;
 
 import java.time.LocalDateTime;
@@ -16,13 +16,13 @@ public interface EventParticipationMapper {
     @Mapping(source = "event.id", target = "event")
     @Mapping(source = "status", target = "status", qualifiedByName = "participationStatusToString")
     @Mapping(source = "creationTime", target = "created", qualifiedByName = "formatLocalDateTime")
-    EventParticipationDto convertToDto(EventParticipation participation);
+    ParticipationRequestDto convertToDto(EventParticipation participation);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "requester", ignore = true)
     @Mapping(target = "event", ignore = true)
     @Mapping(target = "creationTime", ignore = true)
-    EventParticipation convertToEntity(EventParticipationDto dto);
+    EventParticipation convertToEntity(ParticipationRequestDto dto);
 
     @Named("formatLocalDateTime")
     default String formatLocalDateTime(LocalDateTime dateTime) {

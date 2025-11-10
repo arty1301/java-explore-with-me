@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.UserDto;
-import ru.practicum.ewm.dto.CreateUserRequest;
+import ru.practicum.ewm.dto.NewUserRequest;
 import ru.practicum.ewm.service.PlatformUserService;
 
 import java.util.List;
@@ -22,7 +22,7 @@ public class UserManagementController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UserDto registerPlatformUser(@Valid @RequestBody CreateUserRequest userRequest) {
+    public UserDto registerUser(@Valid @RequestBody NewUserRequest userRequest) {
         log.info("Admin: Registering new user with email: {}", userRequest.getEmail());
         UserDto createdUser = userService.registerUser(userRequest);
         log.info("Admin: Successfully registered user with ID: {}", createdUser.getId());
@@ -30,7 +30,7 @@ public class UserManagementController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserDto>> retrievePlatformUsers(
+    public ResponseEntity<List<UserDto>> getUsers(
             @RequestParam(required = false) List<Long> ids,
             @RequestParam(defaultValue = "0") int from,
             @RequestParam(defaultValue = "10") int size) {
@@ -43,7 +43,7 @@ public class UserManagementController {
 
     @DeleteMapping("/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> removePlatformUser(@PathVariable Long userId) {
+    public ResponseEntity<Void> delete(@PathVariable Long userId) {
         log.info("Admin: Removing user with ID: {}", userId);
         userService.unregisterUser(userId);
         log.info("Admin: Successfully removed user with ID: {}", userId);

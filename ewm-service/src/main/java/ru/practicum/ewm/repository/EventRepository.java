@@ -56,10 +56,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             "WHERE p.event.id = :eventId AND p.status = 'CONFIRMED'")
     Integer countConfirmedParticipations(@Param("eventId") Long eventId);
 
-    @Query("SELECT COUNT(p) FROM EventParticipation p " +
-            "WHERE p.event.id = :eventId AND p.status = 'CONFIRMED'")
-    Long countConfirmedParticipationsLong(@Param("eventId") Long eventId);
-
     @Query("SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END " +
             "FROM Event e WHERE e.id = :eventId AND e.initiator.id = :userId")
     boolean existsEventByInitiator(@Param("eventId") Long eventId, @Param("userId") Long userId);

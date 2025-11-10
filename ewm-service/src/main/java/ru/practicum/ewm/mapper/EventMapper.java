@@ -3,9 +3,9 @@ package ru.practicum.ewm.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
-import ru.practicum.ewm.dto.EventDetailedDto;
-import ru.practicum.ewm.dto.EventBriefDto;
-import ru.practicum.ewm.dto.CreateEventRequest;
+import ru.practicum.ewm.dto.EventFullDto;
+import ru.practicum.ewm.dto.EventShortDto;
+import ru.practicum.ewm.dto.NewEventDto;
 import ru.practicum.ewm.model.Event;
 
 import java.time.LocalDateTime;
@@ -22,12 +22,12 @@ public interface EventMapper {
     @Mapping(source = "eventDate", target = "eventDate", qualifiedByName = "formatLocalDateTime")
     @Mapping(source = "publicationDate", target = "publishedOn", qualifiedByName = "formatLocalDateTime")
     @Mapping(source = "status", target = "state", qualifiedByName = "eventStatusToString")
-    EventDetailedDto convertToDetailedDto(Event event);
+    EventFullDto convertToDetailedDto(Event event);
 
     @Mapping(source = "category", target = "category")
     @Mapping(source = "initiator", target = "initiator")
     @Mapping(source = "eventDate", target = "eventDate", qualifiedByName = "formatLocalDateTime")
-    EventBriefDto convertToBriefDto(Event event);
+    EventShortDto convertToBriefDto(Event event);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "status", ignore = true)
@@ -39,7 +39,7 @@ public interface EventMapper {
     @Mapping(source = "eventDate", target = "eventDate", dateFormat = "yyyy-MM-dd HH:mm:ss")
     @Mapping(source = "location.lat", target = "location.latitude")
     @Mapping(source = "location.lon", target = "location.longitude")
-    Event convertToEntity(CreateEventRequest request);
+    Event convertToEntity(NewEventDto request);
 
     @Named("formatLocalDateTime")
     default String formatLocalDateTime(LocalDateTime dateTime) {

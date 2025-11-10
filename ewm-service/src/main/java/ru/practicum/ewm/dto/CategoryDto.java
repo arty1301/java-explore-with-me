@@ -8,7 +8,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EventCategoryDto {
+public class CategoryDto {
     private Long id;
 
     @NotBlank(message = "Category name cannot be blank")

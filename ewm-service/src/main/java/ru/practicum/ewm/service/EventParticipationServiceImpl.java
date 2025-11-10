@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.ewm.dto.EventParticipationDto;
+import ru.practicum.ewm.dto.ParticipationRequestDto;
 import ru.practicum.ewm.exception.*;
 import ru.practicum.ewm.mapper.EventParticipationMapper;
 import ru.practicum.ewm.model.Event;
@@ -30,7 +30,7 @@ public class EventParticipationServiceImpl implements EventParticipationService 
     private final EventParticipationMapper participationMapper;
 
     @Override
-    public EventParticipationDto createParticipationRequest(Long userId, Long eventId) {
+    public ParticipationRequestDto createParticipationRequest(Long userId, Long eventId) {
         log.info("Creating participation request for user ID: {} on event ID: {}", userId, eventId);
 
         PlatformUser requester = userRepository.findById(userId)
@@ -58,7 +58,7 @@ public class EventParticipationServiceImpl implements EventParticipationService 
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventParticipationDto> getUserParticipationRequests(Long userId) {
+    public List<ParticipationRequestDto> getUserParticipationRequests(Long userId) {
         log.info("Retrieving participation requests for user ID: {}", userId);
 
         if (!userRepository.existsById(userId)) {
@@ -72,7 +72,7 @@ public class EventParticipationServiceImpl implements EventParticipationService 
     }
 
     @Override
-    public EventParticipationDto cancelParticipationRequest(Long userId, Long requestId) {
+    public ParticipationRequestDto cancelParticipationRequest(Long userId, Long requestId) {
         log.info("Canceling participation request ID: {} for user ID: {}", requestId, userId);
 
         EventParticipation participation = participationRepository.findById(requestId)

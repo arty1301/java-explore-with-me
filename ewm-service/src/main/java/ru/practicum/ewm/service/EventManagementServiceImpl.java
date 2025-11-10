@@ -44,7 +44,7 @@ public class EventManagementServiceImpl implements EventManagementService {
     private static final int ADMIN_MIN_HOURS_BEFORE_EVENT = 1;
 
     @Override
-    public EventDetailedDto createEvent(Long userId, CreateEventRequest request) {
+    public EventFullDto createEvent(Long userId, NewEventDto request) {
         log.info("Creating event for user ID: {}", userId);
 
         PlatformUser initiator = userRepository.findById(userId)
@@ -66,12 +66,12 @@ public class EventManagementServiceImpl implements EventManagementService {
         Event savedEvent = eventRepository.save(newEvent);
         log.info("Successfully created event with ID: {} for user ID: {}", savedEvent.getId(), userId);
 
-        return createEventDetailedDtoWithStats(savedEvent, retrieveEventsViewCounts(List.of(savedEvent)));
+        return createEventFullDtoWithStats(savedEvent, retrieveEventsViewCounts(List.of(savedEvent)));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventBriefDto> findPublicEvents(String searchText, List<Long> categories, Boolean paid,
+    public List<EventShortDto> findPublicEvents(String searchText, List<Long> categories, Boolean paid,
                                                 String rangeStart, String rangeEnd, boolean onlyAvailable,
                                                 String sortBy, int startingFrom, int pageSize, HttpServletRequest httpRequest) {
         log.info("Searching public events with filters - text: {}, categories: {}, paid: {}",
@@ -97,9 +97,9 @@ public class EventManagementServiceImpl implements EventManagementService {
         events = applyAdditionalFilters(events, startTime, endTime, onlyAvailable);
         Map<Long, Long> eventViews = retrieveEventsViewCounts(events);
 
-        List<EventBriefDto> resultEvents = events.stream()
+        List<EventShortDto> resultEvents = events.stream()
                 .map(event -> {
-                    EventBriefDto dto = eventMapper.convertToBriefDto(event);
+                    EventShortDto dto = eventMapper.convertToBriefDto(event);
                     Integer confirmedCount = eventRepository.countConfirmedParticipations(event.getId());
                     dto.setConfirmedRequests(confirmedCount != null ? confirmedCount.longValue() : 0L);
                     dto.setViews(eventViews.getOrDefault(event.getId(), 0L));
@@ -112,7 +112,7 @@ public class EventManagementServiceImpl implements EventManagementService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventDetailedDto getPublicEventDetails(Long eventId, HttpServletRequest httpRequest) {
+    public EventFullDto getPublicEventDetails(Long eventId, HttpServletRequest httpRequest) {
         log.info("Retrieving public event details for ID: {}", eventId);
 
         Event event = eventRepository.findPublishedEventById(eventId)
@@ -120,13 +120,13 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         recordEndpointAccess(httpRequest);
 
-        EventDetailedDto eventDto = createEventDetailedDtoWithStats(event, retrieveEventsViewCounts(List.of(event)));
+        EventFullDto eventDto = createEventFullDtoWithStats(event, retrieveEventsViewCounts(List.of(event)));
         log.info("Retrieved event details for ID: {}", eventId);
         return eventDto;
     }
 
     @Override
-    public EventDetailedDto getUserEventDetails(Long userId, Long eventId) {
+    public EventFullDto getUserEventDetails(Long userId, Long eventId) {
         log.info("Retrieving event details for user ID: {}, event ID: {}", userId, eventId);
 
         Event event = eventRepository.findById(eventId)
@@ -136,11 +136,11 @@ public class EventManagementServiceImpl implements EventManagementService {
             throw new AccessDeniedException("User is not the initiator of this event");
         }
 
-        return createEventDetailedDtoWithStats(event, retrieveEventsViewCounts(List.of(event)));
+        return createEventFullDtoWithStats(event, retrieveEventsViewCounts(List.of(event)));
     }
 
     @Override
-    public EventDetailedDto updateUserEvent(Long userId, Long eventId, UpdateEventUserRequest request) {
+    public EventFullDto updateUserEvent(Long userId, Long eventId, UpdateEventUserRequest request) {
         log.info("Updating event ID: {} for user ID: {}", eventId, userId);
 
         Event event = eventRepository.findById(eventId)
@@ -163,12 +163,12 @@ public class EventManagementServiceImpl implements EventManagementService {
         Event updatedEvent = eventRepository.save(event);
         log.info("Successfully updated event ID: {} for user ID: {}", eventId, userId);
 
-        return createEventDetailedDtoWithStats(updatedEvent, retrieveEventsViewCounts(List.of(updatedEvent)));
+        return createEventFullDtoWithStats(updatedEvent, retrieveEventsViewCounts(List.of(updatedEvent)));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventBriefDto> getUserEvents(Long userId, int startingFrom, int pageSize) {
+    public List<EventShortDto> getUserEvents(Long userId, int startingFrom, int pageSize) {
         log.info("Retrieving events for user ID: {}, from: {}, size: {}", userId, startingFrom, pageSize);
 
         Pageable pageable = PageRequest.of(startingFrom / pageSize, pageSize);
@@ -179,7 +179,7 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         return userEvents.stream()
                 .map(event -> {
-                    EventBriefDto dto = eventMapper.convertToBriefDto(event);
+                    EventShortDto dto = eventMapper.convertToBriefDto(event);
                     Integer confirmedCount = eventRepository.countConfirmedParticipations(event.getId());
                     dto.setConfirmedRequests(confirmedCount != null ? confirmedCount.longValue() : 0L);
                     dto.setViews(eventViews.getOrDefault(event.getId(), 0L));
@@ -190,7 +190,7 @@ public class EventManagementServiceImpl implements EventManagementService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventParticipationDto> getEventParticipations(Long userId, Long eventId) {
+    public List<ParticipationRequestDto> getEventParticipations(Long userId, Long eventId) {
         log.info("Retrieving participations for event ID: {} by user ID: {}", eventId, userId);
 
         Event event = eventRepository.findById(eventId)
@@ -205,8 +205,8 @@ public class EventManagementServiceImpl implements EventManagementService {
     }
 
     @Override
-    public ParticipationStatusUpdateResult processParticipationStatusUpdate(
-            Long userId, Long eventId, ParticipationStatusUpdateRequest statusUpdate) {
+    public EventRequestStatusUpdateResult processParticipationStatusUpdate(
+            Long userId, Long eventId, EventRequestStatusUpdateRequest statusUpdate) {
 
         log.info("Processing participation status update for event ID: {} by user ID: {}", eventId, userId);
 
@@ -228,8 +228,8 @@ public class EventManagementServiceImpl implements EventManagementService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventDetailedDto> findEventsForAdmin(List<Long> userIds, List<String> states, List<Long> categories,
-                                                     String rangeStart, String rangeEnd, int startingFrom, int pageSize) {
+    public List<EventFullDto> findEventsForAdmin(List<Long> userIds, List<String> states, List<Long> categories,
+                                                 String rangeStart, String rangeEnd, int startingFrom, int pageSize) {
 
         log.info("Admin event search - users: {}, states: {}, categories: {}", userIds, states, categories);
 
@@ -251,12 +251,12 @@ public class EventManagementServiceImpl implements EventManagementService {
         Map<Long, Long> eventViews = retrieveEventsViewCounts(events);
 
         return events.stream()
-                .map(event -> createEventDetailedDtoWithStats(event, eventViews))
+                .map(event -> createEventFullDtoWithStats(event, eventViews))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public EventDetailedDto updateEventByAdmin(Long eventId, UpdateEventAdminRequest request) {
+    public EventFullDto updateEventByAdmin(Long eventId, UpdateEventAdminRequest request) {
         log.info("Admin updating event ID: {}", eventId);
 
         Event event = eventRepository.findById(eventId)
@@ -272,17 +272,17 @@ public class EventManagementServiceImpl implements EventManagementService {
         Event updatedEvent = eventRepository.save(event);
         log.info("Admin successfully updated event ID: {}", eventId);
 
-        return createEventDetailedDtoWithStats(updatedEvent, retrieveEventsViewCounts(List.of(updatedEvent)));
+        return createEventFullDtoWithStats(updatedEvent, retrieveEventsViewCounts(List.of(updatedEvent)));
     }
 
-    private ParticipationStatusUpdateResult processStatusUpdate(
+    private EventRequestStatusUpdateResult processStatusUpdate(
             List<EventParticipation> participations,
             String action,
             Event event,
             Integer currentConfirmed) {
 
-        List<EventParticipationDto> confirmed = new ArrayList<>();
-        List<EventParticipationDto> rejected = new ArrayList<>();
+        List<ParticipationRequestDto> confirmed = new ArrayList<>();
+        List<ParticipationRequestDto> rejected = new ArrayList<>();
 
         Integer participantLimit = event.getParticipantLimit();
         boolean hasLimit = participantLimit != null && participantLimit > 0;
@@ -294,7 +294,7 @@ public class EventManagementServiceImpl implements EventManagementService {
                 confirmed.add(participationMapper.convertToDto(participation));
             }
             participationRepository.saveAll(participations);
-            return new ParticipationStatusUpdateResult(confirmed, rejected);
+            return new EventRequestStatusUpdateResult(confirmed, rejected);
         }
 
         long confirmedCount = currentConfirmed != null ? currentConfirmed.longValue() : 0L;
@@ -329,11 +329,11 @@ public class EventManagementServiceImpl implements EventManagementService {
             }
         }
 
-        return new ParticipationStatusUpdateResult(confirmed, rejected);
+        return new EventRequestStatusUpdateResult(confirmed, rejected);
     }
 
-    private EventDetailedDto createEventDetailedDtoWithStats(Event event, Map<Long, Long> eventViews) {
-        EventDetailedDto dto = eventMapper.convertToDetailedDto(event);
+    private EventFullDto createEventFullDtoWithStats(Event event, Map<Long, Long> eventViews) {
+        EventFullDto dto = eventMapper.convertToDetailedDto(event);
 
         Integer confirmedCount = eventRepository.countConfirmedParticipations(event.getId());
         dto.setConfirmedRequests(confirmedCount != null ? confirmedCount.longValue() : 0L);
@@ -343,6 +343,7 @@ public class EventManagementServiceImpl implements EventManagementService {
         return dto;
     }
 
+    // Остальные вспомогательные методы остаются без изменений...
     private void validateEventCreationTime(String eventDateString) {
         LocalDateTime eventDateTime = parseDateTimeString(eventDateString);
         if (eventDateTime.isBefore(LocalDateTime.now().plusHours(MIN_HOURS_BEFORE_EVENT))) {
@@ -350,7 +351,7 @@ public class EventManagementServiceImpl implements EventManagementService {
         }
     }
 
-    private void configureEventDefaults(Event event, CreateEventRequest request) {
+    private void configureEventDefaults(Event event, NewEventDto request) {
         if (request.getPaid() == null) event.setPaid(false);
         if (request.getParticipantLimit() == null) event.setParticipantLimit(0);
         if (request.getRequestModeration() == null) event.setRequestModeration(true);
@@ -406,13 +407,6 @@ public class EventManagementServiceImpl implements EventManagementService {
                 .collect(Collectors.toList());
     }
 
-    private boolean filterByDateTime(Event event, LocalDateTime start, LocalDateTime end) {
-        LocalDateTime eventTime = event.getEventDate();
-        boolean afterStart = start == null || !eventTime.isBefore(start);
-        boolean beforeEnd = end == null || !eventTime.isAfter(end);
-        return afterStart && beforeEnd;
-    }
-
     private boolean isEventAvailable(Event event) {
         Integer participantLimit = event.getParticipantLimit();
         if (participantLimit == null || participantLimit == 0) {
@@ -456,7 +450,7 @@ public class EventManagementServiceImpl implements EventManagementService {
         }
     }
 
-    private List<EventBriefDto> sortEvents(List<EventBriefDto> events, String sortBy) {
+    private List<EventShortDto> sortEvents(List<EventShortDto> events, String sortBy) {
         if ("VIEWS".equals(sortBy)) {
             events.sort((e1, e2) -> Long.compare(e2.getViews(), e1.getViews()));
         }

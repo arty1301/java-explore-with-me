@@ -4,12 +4,11 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreateEventRequest {
+public class NewEventDto {
     @NotBlank(message = "Event annotation cannot be blank")
     @Size(min = 20, max = 2000, message = "Annotation must be between 20 and 2000 characters")
     private String annotation;
@@ -27,7 +26,7 @@ public class CreateEventRequest {
     private String eventDate;
 
     @NotNull(message = "Location cannot be null")
-    private LocationDto location;
+    private Location location;
 
     private Boolean paid = false;
 

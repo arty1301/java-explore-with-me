@@ -9,7 +9,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UpdateCollectionRequest {
+public class UpdateCompilationRequest {
     @Size(max = 50, message = "Title must be up to 50 characters")
     private String title;
 

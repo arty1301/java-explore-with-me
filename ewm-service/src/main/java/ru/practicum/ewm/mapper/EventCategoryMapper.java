@@ -2,22 +2,22 @@ package ru.practicum.ewm.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import ru.practicum.ewm.dto.EventCategoryDto;
-import ru.practicum.ewm.dto.CreateCategoryRequest;
+import ru.practicum.ewm.dto.CategoryDto;
+import ru.practicum.ewm.dto.NewCategoryDto;
 import ru.practicum.ewm.model.EventCategory;
 
 @Mapper(componentModel = "spring")
 public interface EventCategoryMapper {
 
-    EventCategoryDto convertToDto(EventCategory category);
+    CategoryDto convertToDto(EventCategory category);
 
     @Mapping(target = "id", ignore = true)
-    EventCategory convertToEntity(CreateCategoryRequest request);
+    EventCategory convertToEntity(NewCategoryDto request);
 
     @Mapping(target = "id", ignore = true)
-    EventCategory convertToEntity(EventCategoryDto dto);
+    EventCategory convertToEntity(CategoryDto dto);
 
-    default EventCategory updateEntityFromDto(EventCategoryDto dto, EventCategory entity) {
+    default EventCategory updateEntityFromDto(CategoryDto dto, EventCategory entity) {
         if (dto == null) {
             return entity;
         }

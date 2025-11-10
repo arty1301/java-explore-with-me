@@ -1,12 +1,12 @@
 package ru.practicum.ewm.service;
 
 import ru.practicum.ewm.dto.UserDto;
-import ru.practicum.ewm.dto.CreateUserRequest;
+import ru.practicum.ewm.dto.NewUserRequest;
 
 import java.util.List;
 
 public interface PlatformUserService {
-    UserDto registerUser(CreateUserRequest request);
+    UserDto registerUser(NewUserRequest request);
 
     List<UserDto> retrieveUsers(List<Long> userIds, int startingFrom, int pageSize);
 

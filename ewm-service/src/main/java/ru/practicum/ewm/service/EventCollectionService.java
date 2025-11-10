@@ -1,15 +1,19 @@
 package ru.practicum.ewm.service;
 
-import ru.practicum.ewm.dto.EventCollectionDto;
-import ru.practicum.ewm.dto.CreateCollectionRequest;
-import ru.practicum.ewm.dto.UpdateCollectionRequest;
+import ru.practicum.ewm.dto.CompilationDto;
+import ru.practicum.ewm.dto.NewCompilationDto;
+import ru.practicum.ewm.dto.UpdateCompilationRequest;
 
 import java.util.List;
 
 public interface EventCollectionService {
-    EventCollectionDto createCollection(CreateCollectionRequest request);
-    EventCollectionDto updateCollection(Long collectionId, UpdateCollectionRequest request);
+    CompilationDto createCollection(NewCompilationDto request);
+
+    CompilationDto updateCollection(Long collectionId, UpdateCompilationRequest request);
+
     void removeCollection(Long collectionId);
-    List<EventCollectionDto> getCollections(int startingFrom, int pageSize, Boolean pinned);
-    EventCollectionDto getCollectionById(Long collectionId);
+
+    List<CompilationDto> getCollections(int startingFrom, int pageSize, Boolean pinned);
+
+    CompilationDto getCollectionById(Long collectionId);
 }

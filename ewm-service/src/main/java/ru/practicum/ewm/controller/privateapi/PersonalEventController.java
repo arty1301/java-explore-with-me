@@ -21,73 +21,73 @@ public class PersonalEventController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public EventDetailedDto createPersonalEvent(
+    public EventFullDto addEvent(
             @PathVariable Long userId,
-            @Valid @RequestBody CreateEventRequest eventRequest) {
+            @Valid @RequestBody NewEventDto eventRequest) {
 
         log.info("User {}: Creating new event", userId);
-        EventDetailedDto createdEvent = eventService.createEvent(userId, eventRequest);
+        EventFullDto createdEvent = eventService.createEvent(userId, eventRequest);
         log.info("User {}: Successfully created event with ID: {}", userId, createdEvent.getId());
         return createdEvent;
     }
 
     @GetMapping
-    public ResponseEntity<List<EventBriefDto>> retrieveUserEvents(
+    public ResponseEntity<List<EventShortDto>> getEvents(
             @PathVariable Long userId,
             @RequestParam(defaultValue = "0") int from,
             @RequestParam(defaultValue = "10") int size) {
 
         log.info("User {}: Retrieving events from: {}, size: {}", userId, from, size);
-        List<EventBriefDto> userEvents = eventService.getUserEvents(userId, from, size);
+        List<EventShortDto> userEvents = eventService.getUserEvents(userId, from, size);
         log.info("User {}: Retrieved {} events", userId, userEvents.size());
         return ResponseEntity.ok(userEvents);
     }
 
     @GetMapping("/{eventId}")
-    public ResponseEntity<EventDetailedDto> retrieveUserEventDetails(
+    public EventFullDto getEvent(
             @PathVariable Long userId,
             @PathVariable Long eventId) {
 
         log.info("User {}: Retrieving details for event ID: {}", userId, eventId);
-        EventDetailedDto eventDetails = eventService.getUserEventDetails(userId, eventId);
+        EventFullDto eventDetails = eventService.getUserEventDetails(userId, eventId);
         log.info("User {}: Retrieved details for event ID: {}", userId, eventId);
-        return ResponseEntity.ok(eventDetails);
+        return eventDetails;
     }
 
     @PatchMapping("/{eventId}")
-    public ResponseEntity<EventDetailedDto> updatePersonalEvent(
+    public EventFullDto updateEvent(
             @PathVariable Long userId,
             @PathVariable Long eventId,
             @Valid @RequestBody UpdateEventUserRequest updateRequest) {
 
         log.info("User {}: Updating event ID: {}", userId, eventId);
-        EventDetailedDto updatedEvent = eventService.updateUserEvent(userId, eventId, updateRequest);
+        EventFullDto updatedEvent = eventService.updateUserEvent(userId, eventId, updateRequest);
         log.info("User {}: Successfully updated event ID: {}", userId, eventId);
-        return ResponseEntity.ok(updatedEvent);
+        return updatedEvent;
     }
 
     @GetMapping("/{eventId}/requests")
-    public ResponseEntity<List<EventParticipationDto>> retrieveEventParticipationRequests(
+    public ResponseEntity<List<ParticipationRequestDto>> getEventParticipants(
             @PathVariable Long userId,
             @PathVariable Long eventId) {
 
         log.info("User {}: Retrieving participation requests for event ID: {}", userId, eventId);
-        List<EventParticipationDto> participations = eventService.getEventParticipations(userId, eventId);
+        List<ParticipationRequestDto> participations = eventService.getEventParticipations(userId, eventId);
         log.info("User {}: Retrieved {} participation requests", userId, participations.size());
         return ResponseEntity.ok(participations);
     }
 
     @PatchMapping("/{eventId}/requests")
-    public ResponseEntity<ParticipationStatusUpdateResult> processParticipationStatusUpdates(
+    public EventRequestStatusUpdateResult changeRequestStatus(
             @PathVariable Long userId,
             @PathVariable Long eventId,
-            @Valid @RequestBody ParticipationStatusUpdateRequest statusUpdate) {
+            @Valid @RequestBody EventRequestStatusUpdateRequest statusUpdate) {
 
         log.info("User {}: Processing status updates for event ID: {}", userId, eventId);
-        ParticipationStatusUpdateResult result = eventService.processParticipationStatusUpdate(
+        EventRequestStatusUpdateResult result = eventService.processParticipationStatusUpdate(
                 userId, eventId, statusUpdate);
         log.info("User {}: Processed {} confirmations, {} rejections",
                 userId, result.getConfirmedRequests().size(), result.getRejectedRequests().size());
-        return ResponseEntity.ok(result);
+        return result;
     }
 }

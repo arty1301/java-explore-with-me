@@ -7,7 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.dto.UserDto;
-import ru.practicum.ewm.dto.CreateUserRequest;
+import ru.practicum.ewm.dto.NewUserRequest;
 import ru.practicum.ewm.exception.DataConflictException;
 import ru.practicum.ewm.exception.ResourceNotFoundException;
 import ru.practicum.ewm.exception.ValidationException;
@@ -28,7 +28,7 @@ public class PlatformUserServiceImpl implements PlatformUserService {
     private final PlatformUserMapper userMapper;
 
     @Override
-    public UserDto registerUser(CreateUserRequest request) {
+    public UserDto registerUser(NewUserRequest request) {
         log.info("Registering new user with email: {}", request.getEmail());
 
         validateUserEmail(request.getEmail());

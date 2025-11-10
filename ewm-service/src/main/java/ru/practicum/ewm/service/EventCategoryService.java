@@ -1,18 +1,18 @@
 package ru.practicum.ewm.service;
 
-import ru.practicum.ewm.dto.EventCategoryDto;
-import ru.practicum.ewm.dto.CreateCategoryRequest;
+import ru.practicum.ewm.dto.CategoryDto;
+import ru.practicum.ewm.dto.NewCategoryDto;
 
 import java.util.List;
 
 public interface EventCategoryService {
-    EventCategoryDto createCategory(CreateCategoryRequest request);
+    CategoryDto createCategory(NewCategoryDto request);
 
     void removeCategory(Long categoryId);
 
-    EventCategoryDto modifyCategory(Long categoryId, EventCategoryDto categoryDto);
+    CategoryDto modifyCategory(Long categoryId, CategoryDto categoryDto);
 
-    List<EventCategoryDto> retrieveCategories(int startingFrom, int pageSize);
+    List<CategoryDto> retrieveCategories(int startingFrom, int pageSize);
 
-    EventCategoryDto retrieveCategoryById(Long categoryId);
+    CategoryDto retrieveCategoryById(Long categoryId);
 }

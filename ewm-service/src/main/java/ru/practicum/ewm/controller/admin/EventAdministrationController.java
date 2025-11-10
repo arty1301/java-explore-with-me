@@ -3,10 +3,9 @@ package ru.practicum.ewm.controller.admin;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.ewm.dto.EventDetailedDto;
+import ru.practicum.ewm.dto.EventFullDto;
 import ru.practicum.ewm.dto.UpdateEventAdminRequest;
 import ru.practicum.ewm.service.EventManagementService;
 
@@ -21,7 +20,7 @@ public class EventAdministrationController {
     private final EventManagementService eventService;
 
     @GetMapping
-    public ResponseEntity<List<EventDetailedDto>> searchEventsWithAdminFilters(
+    public ResponseEntity<List<EventFullDto>> getEvents(
             @RequestParam(required = false) List<Long> users,
             @RequestParam(required = false) List<String> states,
             @RequestParam(required = false) List<Long> categories,
@@ -33,7 +32,7 @@ public class EventAdministrationController {
         log.info("Admin: Searching events with filters - users: {}, states: {}, categories: {}",
                 users, states, categories);
 
-        List<EventDetailedDto> events = eventService.findEventsForAdmin(
+        List<EventFullDto> events = eventService.findEventsForAdmin(
                 users, states, categories, rangeStart, rangeEnd, from, size);
 
         log.info("Admin: Found {} events matching criteria", events.size());
@@ -41,13 +40,13 @@ public class EventAdministrationController {
     }
 
     @PatchMapping("/{eventId}")
-    public ResponseEntity<EventDetailedDto> updateEventByAdministrator(
+    public EventFullDto updateEvent(
             @PathVariable Long eventId,
             @Valid @RequestBody UpdateEventAdminRequest adminRequest) {
 
         log.info("Admin: Processing administrative update for event ID: {}", eventId);
-        EventDetailedDto updatedEvent = eventService.updateEventByAdmin(eventId, adminRequest);
+        EventFullDto updatedEvent = eventService.updateEventByAdmin(eventId, adminRequest);
         log.info("Admin: Successfully updated event ID: {}", eventId);
-        return ResponseEntity.ok(updatedEvent);
+        return updatedEvent;
     }
 }

@@ -6,9 +6,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.practicum.ewm.dto.EventCollectionDto;
-import ru.practicum.ewm.dto.CreateCollectionRequest;
-import ru.practicum.ewm.dto.UpdateCollectionRequest;
+import ru.practicum.ewm.dto.CompilationDto;
+import ru.practicum.ewm.dto.NewCompilationDto;
+import ru.practicum.ewm.dto.UpdateCompilationRequest;
 import ru.practicum.ewm.exception.ResourceNotFoundException;
 import ru.practicum.ewm.mapper.EventCollectionMapper;
 import ru.practicum.ewm.model.Event;
@@ -32,27 +32,27 @@ public class EventCollectionServiceImpl implements EventCollectionService {
     private final EventCollectionMapper collectionMapper;
 
     @Override
-    public EventCollectionDto createCollection(CreateCollectionRequest request) {
-        log.info("Creating new event collection with title: {}", request.getTitle());
+    public CompilationDto createCollection(NewCompilationDto request) {
+        log.info("Creating new event compilation with title: {}", request.getTitle());
 
-        Set<Event> collectionEvents = resolveEventSet(request.getEvents());
+        Set<Event> compilationEvents = resolveEventSet(request.getEvents());
 
         EventCollection newCollection = collectionMapper.convertToEntity(request);
         configureCollectionDefaults(newCollection);
-        newCollection.setEvents(collectionEvents);
+        newCollection.setEvents(compilationEvents);
 
         EventCollection savedCollection = collectionRepository.save(newCollection);
-        log.info("Successfully created collection with ID: {}", savedCollection.getId());
+        log.info("Successfully created compilation with ID: {}", savedCollection.getId());
 
         return collectionMapper.convertToDto(savedCollection);
     }
 
     @Override
-    public EventCollectionDto updateCollection(Long collectionId, UpdateCollectionRequest request) {
-        log.info("Updating event collection with ID: {}", collectionId);
+    public CompilationDto updateCollection(Long collectionId, UpdateCompilationRequest request) {
+        log.info("Updating event compilation with ID: {}", collectionId);
 
         EventCollection existingCollection = collectionRepository.findById(collectionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Event collection not found with ID: " + collectionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Event compilation not found with ID: " + collectionId));
 
         applyCollectionUpdates(existingCollection, request);
 
@@ -62,50 +62,50 @@ public class EventCollectionServiceImpl implements EventCollectionService {
         }
 
         EventCollection updatedCollection = collectionRepository.save(existingCollection);
-        log.info("Successfully updated collection with ID: {}", collectionId);
+        log.info("Successfully updated compilation with ID: {}", collectionId);
 
         return collectionMapper.convertToDto(updatedCollection);
     }
 
     @Override
     public void removeCollection(Long collectionId) {
-        log.info("Removing event collection with ID: {}", collectionId);
+        log.info("Removing event compilation with ID: {}", collectionId);
 
         if (!collectionRepository.existsById(collectionId)) {
-            throw new ResourceNotFoundException("Event collection not found with ID: " + collectionId);
+            throw new ResourceNotFoundException("Event compilation not found with ID: " + collectionId);
         }
 
         collectionRepository.deleteById(collectionId);
-        log.info("Successfully removed collection with ID: {}", collectionId);
+        log.info("Successfully removed compilation with ID: {}", collectionId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<EventCollectionDto> getCollections(int startingFrom, int pageSize, Boolean pinned) {
-        log.info("Retrieving collections - from: {}, size: {}, pinned: {}", startingFrom, pageSize, pinned);
+    public List<CompilationDto> getCollections(int startingFrom, int pageSize, Boolean pinned) {
+        log.info("Retrieving compilations - from: {}, size: {}, pinned: {}", startingFrom, pageSize, pinned);
 
         Pageable pageable = PageRequest.of(startingFrom / pageSize, pageSize);
-        List<EventCollection> collections;
+        List<EventCollection> compilations;
 
         if (pinned == null) {
-            collections = collectionRepository.findAllCollections(pageable).getContent();
+            compilations = collectionRepository.findAllCollections(pageable).getContent();
         } else {
-            collections = collectionRepository.findCollectionsByPinnedStatus(pinned, pageable).getContent();
+            compilations = collectionRepository.findCollectionsByPinnedStatus(pinned, pageable).getContent();
         }
 
-        return collections.stream()
+        return compilations.stream()
                 .map(collectionMapper::convertToDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public EventCollectionDto getCollectionById(Long collectionId) {
-        log.info("Retrieving collection by ID: {}", collectionId);
+    public CompilationDto getCollectionById(Long collectionId) {
+        log.info("Retrieving compilation by ID: {}", collectionId);
 
         return collectionRepository.findCollectionWithEvents(collectionId)
                 .map(collectionMapper::convertToDto)
-                .orElseThrow(() -> new ResourceNotFoundException("Event collection not found with ID: " + collectionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Event compilation not found with ID: " + collectionId));
     }
 
     private Set<Event> resolveEventSet(Set<Long> eventIds) {
@@ -125,7 +125,7 @@ public class EventCollectionServiceImpl implements EventCollectionService {
         }
     }
 
-    private void applyCollectionUpdates(EventCollection collection, UpdateCollectionRequest request) {
+    private void applyCollectionUpdates(EventCollection collection, UpdateCompilationRequest request) {
         if (request.getTitle() != null) {
             collection.setTitle(request.getTitle());
         }

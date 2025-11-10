@@ -9,7 +9,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CreateUserRequest {
+public class NewUserRequest {
     @NotBlank(message = "User name cannot be blank")
     @Size(min = 2, max = 250, message = "User name must be between 2 and 250 characters")
     private String name;

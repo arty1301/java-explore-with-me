@@ -38,6 +38,12 @@ services:
     restart: unless-stopped
     ports:
       - "9090:9090"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - ewm-network
 
@@ -72,14 +78,14 @@ services:
       - SPRING_DATASOURCE_PASSWORD=ewm_pass
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_JPA_SHOW_SQL=false
-      - LOGGING_LEVEL_RU_PRACTICUM=INFO
+      - LOGGING_LEVEL_RU_PRACTICUM=DEBUG
       - STATS_SERVICE_URL=http://stats-server:9090
       - JAVA_OPTS=-Xmx512m -Xms256m
     depends_on:
       ewm-db:
         condition: service_healthy
       stats-server:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     ports:
       - "8080:8080"

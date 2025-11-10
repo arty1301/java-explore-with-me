@@ -40,7 +40,21 @@ public class EventParticipationServiceImpl implements EventParticipationService 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found with ID: " + eventId));
 
-        validateParticipationRequest(requester, event);
+        if (event.getInitiator().getId().equals(userId)) {
+            throw new DataConflictException("Event initiator cannot participate in their own event");
+        }
+
+        if (!Event.EventStatus.PUBLISHED.equals(event.getStatus())) {
+            throw new DataConflictException("Cannot participate in unpublished event");
+        }
+
+        if (event.getParticipantLimit() != null && event.getParticipantLimit() > 0) {
+            Integer confirmedCount = participationRepository.countParticipationsByStatus(
+                    event.getId(), EventParticipation.ParticipationStatus.CONFIRMED);
+            if (confirmedCount != null && confirmedCount >= event.getParticipantLimit()) {
+                throw new DataConflictException("Event participant limit reached");
+            }
+        }
 
         Optional<EventParticipation> existingParticipation = participationRepository
                 .findByEventIdAndRequesterId(eventId, userId);
@@ -98,27 +112,6 @@ public class EventParticipationServiceImpl implements EventParticipationService 
 
         log.info("Successfully canceled participation request ID: {}", requestId);
         return participationMapper.convertToDto(updatedParticipation);
-    }
-
-    private void validateParticipationRequest(PlatformUser requester, Event event) {
-        if (event.getInitiator().getId().equals(requester.getId())) {
-            throw new DataConflictException("Event initiator cannot participate in their own event");
-        }
-
-        if (!Event.EventStatus.PUBLISHED.equals(event.getStatus())) {
-            throw new DataConflictException("Cannot participate in unpublished event");
-        }
-
-        if (event.getParticipantLimit() != null && event.getParticipantLimit() > 0) {
-            Integer confirmedCount = participationRepository.countParticipationsByStatus(
-                    event.getId(), EventParticipation.ParticipationStatus.CONFIRMED);
-            if (confirmedCount != null && confirmedCount >= event.getParticipantLimit()) {
-                throw new DataConflictException("Event participant limit reached");
-            }
-        }
-
-        log.debug("Participation request validation passed for user ID: {} and event ID: {}",
-                requester.getId(), event.getId());
     }
 
     private EventParticipation.ParticipationStatus determineInitialStatus(Event event) {

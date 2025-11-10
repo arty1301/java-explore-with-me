@@ -20,6 +20,8 @@ public class DateTimeConfig {
             builder.simpleDateFormat(DATE_TIME_FORMAT);
             builder.serializers(new LocalDateTimeSerializer(DATE_TIME_FORMATTER));
             builder.deserializers(new LocalDateTimeDeserializer(DATE_TIME_FORMATTER));
+            builder.failOnUnknownProperties(false);
+            builder.failOnEmptyBeans(false);
         };
     }
 }

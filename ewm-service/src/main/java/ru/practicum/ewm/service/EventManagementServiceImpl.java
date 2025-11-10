@@ -53,10 +53,9 @@ public class EventManagementServiceImpl implements EventManagementService {
         EventCategory category = categoryRepository.findById(request.getCategory())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategory()));
 
+        validateEventRequest(request);
+
         LocalDateTime eventDateTime = parseDateTimeString(request.getEventDate());
-        if (eventDateTime == null) {
-            throw new ValidationException("Event date cannot be null");
-        }
         validateEventCreationTime(eventDateTime);
 
         Event newEvent = eventMapper.convertToEntity(request);
@@ -92,7 +91,6 @@ public class EventManagementServiceImpl implements EventManagementService {
 
         return result;
     }
-
     @Override
     @Transactional(readOnly = true)
     public List<EventShortDto> findPublicEvents(String searchText, List<Long> categories, Boolean paid,

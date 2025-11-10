@@ -52,7 +52,7 @@ public interface EventMapper {
     @Named("stringToLocalDateTime")
     default LocalDateTime stringToLocalDateTime(String dateTimeString) {
         if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
-            return null;
+            throw new ru.practicum.ewm.exception.ValidationException("Event date cannot be null or empty");
         }
         try {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

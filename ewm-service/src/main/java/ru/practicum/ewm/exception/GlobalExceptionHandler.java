@@ -75,15 +75,44 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(ServiceUnavailableException.class)
-    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
-    public ApiError handleServiceUnavailable(ServiceUnavailableException ex) {
-        log.error("Service unavailable: {}", ex.getMessage());
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        log.warn("HTTP message not readable: {}", ex.getMessage());
+
+        String message = "Malformed JSON request";
+        Throwable cause = ex.getCause();
+
+        if (cause instanceof InvalidFormatException) {
+            InvalidFormatException formatException = (InvalidFormatException) cause;
+            String fieldName = formatException.getPath().isEmpty() ? "unknown" :
+                    formatException.getPath().get(0).getFieldName();
+            Class<?> targetType = formatException.getTargetType();
+            String originalValue = formatException.getValue() != null ?
+                    formatException.getValue().toString() : "null";
+
+            if (targetType == Boolean.class || targetType == boolean.class) {
+                message = String.format("Field '%s': Invalid boolean value '%s'. Expected: true or false",
+                        fieldName, originalValue);
+            } else if (targetType == Integer.class || targetType == int.class ||
+                    targetType == Long.class || targetType == long.class) {
+                message = String.format("Field '%s': Invalid numeric value '%s'. Expected a number",
+                        fieldName, originalValue);
+            } else if (targetType == java.time.LocalDateTime.class) {
+                message = String.format("Field '%s': Invalid date format '%s'. Expected: yyyy-MM-dd HH:mm:ss",
+                        fieldName, originalValue);
+            } else {
+                message = String.format("Field '%s': Invalid value '%s' for type %s",
+                        fieldName, originalValue, targetType.getSimpleName());
+            }
+        }
+
+        log.warn("JSON parse error: {}", message);
         return new ApiError(
                 Collections.emptyList(),
-                ex.getMessage(),
-                "Service unavailable",
-                "SERVICE_UNAVAILABLE",
+                message,
+                "Incorrectly made request.",
+                "BAD_REQUEST",
                 LocalDateTime.now()
         );
     }
@@ -127,28 +156,6 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiError handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        String parameterName = ex.getParameter().getParameterName();
-        String requiredType = ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown";
-        String actualValue = ex.getValue() != null ? ex.getValue().toString() : "null";
-
-        String errorMessage = String.format(
-                "Failed to convert parameter '%s' with value '%s' to required type '%s'",
-                parameterName, actualValue, requiredType
-        );
-
-        log.warn("Type mismatch: {}", errorMessage);
-        return new ApiError(
-                Collections.emptyList(),
-                errorMessage,
-                "Incorrectly made request.",
-                "BAD_REQUEST",
-                LocalDateTime.now()
-        );
-    }
-
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ApiError handleMissingServletRequestParameter(MissingServletRequestParameterException ex) {
@@ -164,64 +171,15 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiError handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("Illegal argument: {}", ex.getMessage());
+    public ApiError handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String errorMessage = String.format("Invalid parameter value: %s", ex.getMessage());
+
+        log.warn("Type mismatch: {}", errorMessage);
         return new ApiError(
                 Collections.emptyList(),
-                ex.getMessage(),
-                "Incorrectly made request.",
-                "BAD_REQUEST",
-                LocalDateTime.now()
-        );
-    }
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiError handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
-        log.warn("HTTP message not readable: {}", ex.getMessage());
-
-        String message = "Malformed JSON request";
-
-        Throwable cause = ex.getCause();
-        if (cause instanceof InvalidFormatException) {
-            InvalidFormatException formatException = (InvalidFormatException) cause;
-            String fieldName = formatException.getPath().isEmpty() ? "unknown" :
-                    formatException.getPath().get(0).getFieldName();
-            Class<?> targetType = formatException.getTargetType();
-            String originalValue = formatException.getValue() != null ?
-                    formatException.getValue().toString() : "null";
-
-            if (targetType == Boolean.class || targetType == boolean.class) {
-                message = String.format("Field '%s': Invalid boolean value '%s'. Expected: true or false without quotes",
-                        fieldName, originalValue);
-            } else if (targetType == Integer.class || targetType == int.class ||
-                    targetType == Long.class || targetType == long.class) {
-                message = String.format("Field '%s': Invalid numeric value '%s'. Expected a number without quotes",
-                        fieldName, originalValue);
-            } else if (targetType == java.time.LocalDateTime.class) {
-                message = String.format("Field '%s': Invalid date format '%s'. Expected: yyyy-MM-dd HH:mm:ss",
-                        fieldName, originalValue);
-            } else {
-                message = String.format("Field '%s': Invalid value '%s' for type %s",
-                        fieldName, originalValue, targetType.getSimpleName());
-            }
-        } else if (ex.getMessage() != null) {
-            if (ex.getMessage().contains("java.time.LocalDateTime")) {
-                message = "Invalid date format. Expected: yyyy-MM-dd HH:mm:ss";
-            } else if (ex.getMessage().contains("Boolean")) {
-                message = "Invalid boolean value. Expected: true or false without quotes";
-            } else if (ex.getMessage().contains("Integer") || ex.getMessage().contains("Long") ||
-                    ex.getMessage().contains("Number") || ex.getMessage().contains("numeric")) {
-                message = "Invalid numeric value. Expected a number without quotes";
-            }
-        }
-
-        log.warn("JSON parse error: {}", message);
-        return new ApiError(
-                Collections.emptyList(),
-                message,
+                errorMessage,
                 "Incorrectly made request.",
                 "BAD_REQUEST",
                 LocalDateTime.now()
@@ -241,81 +199,5 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiError);
-    }
-
-    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ApiError handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
-        log.warn("Data integrity violation: {}", ex.getMessage());
-
-        String message = "Integrity constraint violation";
-        if (ex.getMessage() != null) {
-            if (ex.getMessage().contains("uq_category_name")) {
-                message = "Category name already exists";
-            } else if (ex.getMessage().contains("uq_email")) {
-                message = "Email already exists";
-            } else if (ex.getMessage().contains("uq_compilation_name") || ex.getMessage().contains("uq_compilation_title")) {
-                message = "Compilation title already exists";
-            } else if (ex.getMessage().contains("uq_request") || ex.getMessage().contains("participation_request")) {
-                message = "Participation request already exists";
-            } else if (ex.getMessage().contains("foreign key constraint") || ex.getMessage().contains("FK_")) {
-                message = "Referenced entity not found";
-            }
-        }
-
-        return new ApiError(
-                Collections.emptyList(),
-                message,
-                "Integrity constraint has been violated.",
-                "CONFLICT",
-                LocalDateTime.now()
-        );
-    }
-
-    @ExceptionHandler(org.springframework.dao.InvalidDataAccessApiUsageException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ApiError handleInvalidDataAccessApiUsage(org.springframework.dao.InvalidDataAccessApiUsageException ex) {
-        log.warn("Invalid data access API usage: {}", ex.getMessage());
-
-        String message = "Invalid data access operation";
-        if (ex.getMessage() != null && ex.getMessage().contains("No enum constant")) {
-            message = "Invalid enum value provided";
-        }
-
-        return new ApiError(
-                Collections.emptyList(),
-                message,
-                "Incorrectly made request.",
-                "BAD_REQUEST",
-                LocalDateTime.now()
-        );
-    }
-
-    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
-    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
-    public ApiError handleHttpMediaTypeNotSupported(org.springframework.web.HttpMediaTypeNotSupportedException ex) {
-        log.warn("Unsupported media type: {}", ex.getMessage());
-
-        return new ApiError(
-                Collections.emptyList(),
-                "Unsupported media type. Expected: application/json",
-                "Unsupported Media Type",
-                "UNSUPPORTED_MEDIA_TYPE",
-                LocalDateTime.now()
-        );
-    }
-
-    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
-    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
-    public ApiError handleHttpRequestMethodNotSupported(org.springframework.web.HttpRequestMethodNotSupportedException ex) {
-        log.warn("Method not allowed: {}", ex.getMessage());
-
-        return new ApiError(
-                Collections.emptyList(),
-                "HTTP method not supported for this endpoint",
-                "Method Not Allowed",
-                "METHOD_NOT_ALLOWED",
-                LocalDateTime.now()
-        );
     }
 }

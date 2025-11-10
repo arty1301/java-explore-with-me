@@ -1,5 +1,6 @@
 package ru.practicum.ewm.exception;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -182,10 +183,42 @@ public class GlobalExceptionHandler {
         log.warn("HTTP message not readable: {}", ex.getMessage());
 
         String message = "Malformed JSON request";
-        if (ex.getMessage() != null && ex.getMessage().contains("java.time.LocalDateTime")) {
-            message = "Invalid date format. Expected: yyyy-MM-dd HH:mm:ss";
+
+        Throwable cause = ex.getCause();
+        if (cause instanceof InvalidFormatException) {
+            InvalidFormatException formatException = (InvalidFormatException) cause;
+            String fieldName = formatException.getPath().isEmpty() ? "unknown" :
+                    formatException.getPath().get(0).getFieldName();
+            Class<?> targetType = formatException.getTargetType();
+            String originalValue = formatException.getValue() != null ?
+                    formatException.getValue().toString() : "null";
+
+            if (targetType == Boolean.class || targetType == boolean.class) {
+                message = String.format("Field '%s': Invalid boolean value '%s'. Expected: true or false without quotes",
+                        fieldName, originalValue);
+            } else if (targetType == Integer.class || targetType == int.class ||
+                    targetType == Long.class || targetType == long.class) {
+                message = String.format("Field '%s': Invalid numeric value '%s'. Expected a number without quotes",
+                        fieldName, originalValue);
+            } else if (targetType == java.time.LocalDateTime.class) {
+                message = String.format("Field '%s': Invalid date format '%s'. Expected: yyyy-MM-dd HH:mm:ss",
+                        fieldName, originalValue);
+            } else {
+                message = String.format("Field '%s': Invalid value '%s' for type %s",
+                        fieldName, originalValue, targetType.getSimpleName());
+            }
+        } else if (ex.getMessage() != null) {
+            if (ex.getMessage().contains("java.time.LocalDateTime")) {
+                message = "Invalid date format. Expected: yyyy-MM-dd HH:mm:ss";
+            } else if (ex.getMessage().contains("Boolean")) {
+                message = "Invalid boolean value. Expected: true or false without quotes";
+            } else if (ex.getMessage().contains("Integer") || ex.getMessage().contains("Long") ||
+                    ex.getMessage().contains("Number") || ex.getMessage().contains("numeric")) {
+                message = "Invalid numeric value. Expected a number without quotes";
+            }
         }
 
+        log.warn("JSON parse error: {}", message);
         return new ApiError(
                 Collections.emptyList(),
                 message,
@@ -221,10 +254,12 @@ public class GlobalExceptionHandler {
                 message = "Category name already exists";
             } else if (ex.getMessage().contains("uq_email")) {
                 message = "Email already exists";
-            } else if (ex.getMessage().contains("uq_compilation_name")) {
+            } else if (ex.getMessage().contains("uq_compilation_name") || ex.getMessage().contains("uq_compilation_title")) {
                 message = "Compilation title already exists";
-            } else if (ex.getMessage().contains("uq_request")) {
+            } else if (ex.getMessage().contains("uq_request") || ex.getMessage().contains("participation_request")) {
                 message = "Participation request already exists";
+            } else if (ex.getMessage().contains("foreign key constraint") || ex.getMessage().contains("FK_")) {
+                message = "Referenced entity not found";
             }
         }
 
@@ -233,6 +268,53 @@ public class GlobalExceptionHandler {
                 message,
                 "Integrity constraint has been violated.",
                 "CONFLICT",
+                LocalDateTime.now()
+        );
+    }
+
+    @ExceptionHandler(org.springframework.dao.InvalidDataAccessApiUsageException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ApiError handleInvalidDataAccessApiUsage(org.springframework.dao.InvalidDataAccessApiUsageException ex) {
+        log.warn("Invalid data access API usage: {}", ex.getMessage());
+
+        String message = "Invalid data access operation";
+        if (ex.getMessage() != null && ex.getMessage().contains("No enum constant")) {
+            message = "Invalid enum value provided";
+        }
+
+        return new ApiError(
+                Collections.emptyList(),
+                message,
+                "Incorrectly made request.",
+                "BAD_REQUEST",
+                LocalDateTime.now()
+        );
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    @ResponseStatus(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+    public ApiError handleHttpMediaTypeNotSupported(org.springframework.web.HttpMediaTypeNotSupportedException ex) {
+        log.warn("Unsupported media type: {}", ex.getMessage());
+
+        return new ApiError(
+                Collections.emptyList(),
+                "Unsupported media type. Expected: application/json",
+                "Unsupported Media Type",
+                "UNSUPPORTED_MEDIA_TYPE",
+                LocalDateTime.now()
+        );
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+    @ResponseStatus(HttpStatus.METHOD_NOT_ALLOWED)
+    public ApiError handleHttpRequestMethodNotSupported(org.springframework.web.HttpRequestMethodNotSupportedException ex) {
+        log.warn("Method not allowed: {}", ex.getMessage());
+
+        return new ApiError(
+                Collections.emptyList(),
+                "HTTP method not supported for this endpoint",
+                "Method Not Allowed",
+                "METHOD_NOT_ALLOWED",
                 LocalDateTime.now()
         );
     }

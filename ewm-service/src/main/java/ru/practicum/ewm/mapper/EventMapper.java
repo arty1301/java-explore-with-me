@@ -10,6 +10,7 @@ import ru.practicum.ewm.model.Event;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 
 @Mapper(componentModel = "spring", uses = {EventCategoryMapper.class, PlatformUserMapper.class})
 public interface EventMapper {
@@ -53,8 +54,13 @@ public interface EventMapper {
         if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
             return null;
         }
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        return LocalDateTime.parse(dateTimeString, formatter);
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            return LocalDateTime.parse(dateTimeString, formatter);
+        } catch (DateTimeParseException e) {
+            throw new ru.practicum.ewm.exception.ValidationException(
+                    "Invalid datetime format. Expected: yyyy-MM-dd HH:mm:ss. Received: " + dateTimeString);
+        }
     }
 
     @Named("eventStatusToString")

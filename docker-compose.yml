@@ -6,10 +6,8 @@ services:
       POSTGRES_USER: stats_user
       POSTGRES_PASSWORD: stats_pass
       POSTGRES_DB: stats_db
-    volumes:
-      - stats_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      test: ["CMD-SHELL", "pg_isready -U stats_user -d stats_db"]
       timeout: 5s
       interval: 5s
       retries: 10
@@ -28,7 +26,12 @@ services:
     depends_on:
       stats-db:
         condition: service_healthy
-    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     ports:
       - "9090:9090"
 
@@ -39,10 +42,8 @@ services:
       POSTGRES_USER: ewm_user
       POSTGRES_PASSWORD: ewm_pass
       POSTGRES_DB: ewm_db
-    volumes:
-      - ewm_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      test: ["CMD-SHELL", "pg_isready -U ewm_user -d ewm_db"]
       timeout: 5s
       interval: 5s
       retries: 10
@@ -58,15 +59,10 @@ services:
       - SPRING_DATASOURCE_PASSWORD=ewm_pass
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - STATS_SERVICE_URL=http://stats-server:9090
-      - JAVA_OPTS=-Xmx512m -Xms256m
     depends_on:
       ewm-db:
         condition: service_healthy
       stats-server:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8080:8080"
-
-volumes:
-  stats_db_data: {}
-  ewm_db_data: {}

@@ -2,6 +2,7 @@ services:
   stats-db:
     image: postgres:16.1
     container_name: stats-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: stats_user
       POSTGRES_PASSWORD: stats_pass
@@ -13,10 +14,13 @@ services:
       retries: 10
     ports:
       - "5433:5432"
+    volumes:
+      - stats_db_data:/var/lib/postgresql/data
 
   stats-server:
     build: stats/stats-server
     container_name: stats-server
+    restart: unless-stopped
     environment:
       - SERVER_PORT=9090
       - SPRING_DATASOURCE_URL=jdbc:postgresql://stats-db:5432/stats_db
@@ -38,6 +42,7 @@ services:
   ewm-db:
     image: postgres:16.1
     container_name: ewm-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ewm_user
       POSTGRES_PASSWORD: ewm_pass
@@ -49,10 +54,13 @@ services:
       retries: 10
     ports:
       - "5434:5432"
+    volumes:
+      - ewm_db_data:/var/lib/postgresql/data
 
   ewm-service:
     build: ewm-service
     container_name: ewm-service
+    restart: unless-stopped
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://ewm-db:5432/ewm_db
       - SPRING_DATASOURCE_USERNAME=ewm_user
@@ -72,3 +80,7 @@ services:
       start_period: 60s
     ports:
       - "8080:8080"
+
+volumes:
+  stats_db_data:
+  ewm_db_data:

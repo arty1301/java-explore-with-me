@@ -1,17 +1,19 @@
 package ru.practicum.ewm.model;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "events")
-@Getter
-@Setter
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Event {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,10 +24,10 @@ public class Event {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
-    private EventCategory category;
+    private Category category;
 
     @Column(name = "created_on", nullable = false)
-    private LocalDateTime creationDate;
+    private LocalDateTime createdOn;
 
     @Column(name = "description", length = 7000)
     private String description;
@@ -35,10 +37,10 @@ public class Event {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "initiator_id", nullable = false)
-    private PlatformUser initiator;
+    private User initiator;
 
     @Embedded
-    private EventLocation location;
+    private Location location;
 
     @Column(name = "paid", nullable = false)
     private Boolean paid;
@@ -47,14 +49,14 @@ public class Event {
     private Integer participantLimit;
 
     @Column(name = "published_on")
-    private LocalDateTime publicationDate;
+    private LocalDateTime publishedOn;
 
     @Column(name = "request_moderation")
     private Boolean requestModeration;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "state")
-    private EventStatus status;
+    private EventState state;
 
     @Column(name = "title", nullable = false, length = 120)
     private String title;
@@ -62,7 +64,9 @@ public class Event {
     @Transient
     private Long views;
 
-    public enum EventStatus {
-        PENDING, PUBLISHED, CANCELED
+    public enum EventState {
+        PENDING,
+        PUBLISHED,
+        CANCELED
     }
 }

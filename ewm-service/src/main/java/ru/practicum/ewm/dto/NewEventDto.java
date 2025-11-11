@@ -1,41 +1,43 @@
 package ru.practicum.ewm.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.*;
-import lombok.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class NewEventDto {
-    @NotBlank(message = "Event annotation cannot be blank")
+    @NotBlank(message = "Annotation cannot be empty")
     @Size(min = 20, max = 2000, message = "Annotation must be between 20 and 2000 characters")
     private String annotation;
 
-    @NotNull(message = "Category ID cannot be null")
+    @NotNull(message = "Category is required")
     private Long category;
 
-    @NotBlank(message = "Event description cannot be blank")
+    @NotBlank(message = "Description cannot be empty")
     @Size(min = 20, max = 7000, message = "Description must be between 20 and 7000 characters")
     private String description;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    @NotNull(message = "Event date cannot be null")
-    @Future(message = "Event date must be in the future")
     private String eventDate;
 
-    @NotNull(message = "Location cannot be null")
-    private Location location;
+    private LocationDto location;
+    private Boolean paid;
 
-    private Boolean paid = false;
+    @Min(value = 0, message = "Participant limit cannot be negative")
+    private Integer participantLimit;
 
-    @PositiveOrZero(message = "Participant limit must be positive or zero")
-    private Integer participantLimit = 0;
+    private Boolean requestModeration;
 
-    private Boolean requestModeration = true;
-
-    @NotBlank(message = "Event title cannot be blank")
+    @NotBlank(message = "Title cannot be empty")
     @Size(min = 3, max = 120, message = "Title must be between 3 and 120 characters")
     private String title;
 }

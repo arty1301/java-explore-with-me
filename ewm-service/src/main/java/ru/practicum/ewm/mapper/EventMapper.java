@@ -10,37 +10,32 @@ import ru.practicum.ewm.model.Event;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 
-@Mapper(componentModel = "spring", uses = {EventCategoryMapper.class, PlatformUserMapper.class})
+@Mapper(componentModel = "spring", uses = {CategoryMapper.class, UserMapper.class})
 public interface EventMapper {
 
     @Mapping(source = "category", target = "category")
     @Mapping(source = "initiator", target = "initiator")
-    @Mapping(source = "location.latitude", target = "location.lat")
-    @Mapping(source = "location.longitude", target = "location.lon")
-    @Mapping(source = "creationDate", target = "createdOn", qualifiedByName = "formatLocalDateTime")
     @Mapping(source = "eventDate", target = "eventDate", qualifiedByName = "formatLocalDateTime")
-    @Mapping(source = "publicationDate", target = "publishedOn", qualifiedByName = "formatLocalDateTime")
-    @Mapping(source = "status", target = "state")
-    EventFullDto convertToDetailedDto(Event event);
+    @Mapping(source = "createdOn", target = "createdOn", qualifiedByName = "formatLocalDateTime")
+    @Mapping(source = "publishedOn", target = "publishedOn", qualifiedByName = "formatLocalDateTime")
+    @Mapping(source = "state", target = "state", qualifiedByName = "stateToString")
+    EventFullDto toEventFullDto(Event event);
 
     @Mapping(source = "category", target = "category")
     @Mapping(source = "initiator", target = "initiator")
     @Mapping(source = "eventDate", target = "eventDate", qualifiedByName = "formatLocalDateTime")
-    EventShortDto convertToBriefDto(Event event);
+    EventShortDto toEventShortDto(Event event);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "status", ignore = true)
-    @Mapping(target = "creationDate", ignore = true)
-    @Mapping(target = "publicationDate", ignore = true)
+    @Mapping(target = "state", ignore = true)
+    @Mapping(target = "createdOn", ignore = true)
+    @Mapping(target = "publishedOn", ignore = true)
     @Mapping(target = "views", ignore = true)
-    @Mapping(target = "category", ignore = true)
     @Mapping(target = "initiator", ignore = true)
-    @Mapping(source = "location.lat", target = "location.latitude")
-    @Mapping(source = "location.lon", target = "location.longitude")
-    @Mapping(source = "eventDate", target = "eventDate", qualifiedByName = "stringToLocalDateTime")
-    Event convertToEntity(NewEventDto request);
+    @Mapping(source = "category", target = "category.id")
+    @Mapping(source = "eventDate", target = "eventDate", dateFormat = "yyyy-MM-dd HH:mm:ss")
+    Event toEventEntity(NewEventDto newEventDto);
 
     @Named("formatLocalDateTime")
     default String formatLocalDateTime(LocalDateTime dateTime) {
@@ -51,17 +46,8 @@ public interface EventMapper {
         return dateTime.format(formatter);
     }
 
-    @Named("stringToLocalDateTime")
-    default LocalDateTime stringToLocalDateTime(String dateTimeString) {
-        if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
-            throw new ru.practicum.ewm.exception.ValidationException("Event date cannot be null or empty");
-        }
-        try {
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            return LocalDateTime.parse(dateTimeString, formatter);
-        } catch (DateTimeParseException e) {
-            throw new ru.practicum.ewm.exception.ValidationException(
-                    "Invalid datetime format. Expected: yyyy-MM-dd HH:mm:ss. Received: " + dateTimeString);
-        }
+    @Named("stateToString")
+    default String stateToString(Event.EventState state) {
+        return state != null ? state.name() : null;
     }
 }

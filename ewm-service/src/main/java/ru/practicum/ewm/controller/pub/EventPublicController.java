@@ -3,6 +3,7 @@ package ru.practicum.ewm.controller.pub;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.EventFullDto;
@@ -19,7 +20,8 @@ public class EventPublicController {
     private final EventService eventService;
 
     @GetMapping
-    public ResponseEntity<List<EventShortDto>> searchPublicEvents(
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<List<EventShortDto>> getEvents(
             @RequestParam(required = false) String text,
             @RequestParam(required = false) List<Long> categories,
             @RequestParam(required = false) Boolean paid,
@@ -31,20 +33,16 @@ public class EventPublicController {
             @RequestParam(defaultValue = "10") int size,
             HttpServletRequest request) {
 
-        log.debug("Public event search request from IP: {}", request.getRemoteAddr());
-
-        List<EventShortDto> events = eventService.searchPublicEvents(
+        return ResponseEntity.ok(eventService.getPublicEvents(
                 text, categories, paid, rangeStart, rangeEnd,
-                onlyAvailable, sort, from, size, request);
-
-        return ResponseEntity.ok(events);
+                onlyAvailable, sort, from, size, request));
     }
 
-    @GetMapping("/{eventId}")
-    public EventFullDto getPublicEvent(@PathVariable Long eventId, HttpServletRequest request) {
-        log.info("Public event view - Client IP: {}, Path: {}",
-                request.getRemoteAddr(), request.getRequestURI());
-
-        return eventService.retrievePublicEvent(eventId, request);
+    @GetMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<EventFullDto> getEvent(@PathVariable Long id, HttpServletRequest request) {
+        log.info("client ip: {}", request.getRemoteAddr());
+        log.info("endpoint path: {}", request.getRequestURI());
+        return ResponseEntity.ok(eventService.getPublicEvent(id, request));
     }
 }

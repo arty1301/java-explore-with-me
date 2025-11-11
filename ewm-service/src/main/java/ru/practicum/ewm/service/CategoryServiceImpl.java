@@ -1,9 +1,7 @@
 package ru.practicum.ewm.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.dto.CategoryDto;
@@ -18,7 +16,6 @@ import ru.practicum.ewm.repository.EventRepository;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -28,79 +25,50 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryMapper categoryMapper;
 
     @Override
-    public CategoryDto createCategory(NewCategoryDto categoryDto) {
-        log.info("Creating new category with name: {}", categoryDto.getName());
-
-        if (categoryRepository.existsByName(categoryDto.getName())) {
-            throw new ConflictException("Category name must be unique");
+    public CategoryDto addCategory(NewCategoryDto dto) {
+        if (categoryRepository.existsByName(dto.getName())) {
+            throw new ConflictException("Поле name должно быть уникальным");
         }
-
-        Category category = categoryMapper.toCategoryEntity(categoryDto);
-        Category savedCategory = categoryRepository.save(category);
-
-        log.info("Category created successfully with ID: {}", savedCategory.getId());
-        return categoryMapper.toCategoryDto(savedCategory);
+        Category category = categoryMapper.fromNewDto(dto);
+        Category saved = categoryRepository.save(category);
+        return categoryMapper.toDto(saved);
     }
 
     @Override
-    public void removeCategory(Long categoryId) {
-        log.info("Attempting to delete category with ID: {}", categoryId);
-
-        if (!categoryRepository.existsById(categoryId)) {
-            throw new NotFoundException("Category not found");
+    public void deleteCategory(Long id) {
+        if (!eventRepository.findByCategoryId(id).isEmpty()) {
+            throw new ConflictException("К данной категории привязаны события");
         }
 
-        if (!eventRepository.findByCategoryId(categoryId).isEmpty()) {
-            throw new ConflictException("Cannot delete category with associated events");
-        }
-
-        categoryRepository.deleteById(categoryId);
-        log.info("Category with ID: {} deleted successfully", categoryId);
+        categoryRepository.deleteById(id);
     }
 
     @Override
-    public CategoryDto modifyCategory(Long categoryId, CategoryDto categoryDto) {
-        log.info("Updating category with ID: {}", categoryId);
+    public CategoryDto updateCategory(Long id, CategoryDto dto) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Такая категория не найдена"));
 
-        Category existingCategory = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new NotFoundException("Category not found"));
-
-        if (!existingCategory.getName().equals(categoryDto.getName()) &&
-                categoryRepository.existsByName(categoryDto.getName())) {
-            throw new ConflictException("Category name must be unique");
+        if (!category.getName().equals(dto.getName()) && categoryRepository.existsByName(dto.getName())) {
+            throw new ConflictException("Поле name должно быть уникальным");
         }
 
-        Category updatedCategory = categoryMapper.updateCategoryFromDto(categoryDto, existingCategory);
-        Category savedCategory = categoryRepository.save(updatedCategory);
-
-        log.info("Category with ID: {} updated successfully", categoryId);
-        return categoryMapper.toCategoryDto(savedCategory);
+        category.setName(dto.getName());
+        return categoryMapper.toDto(categoryRepository.save(category));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CategoryDto> retrieveCategories(int from, int size) {
-        log.info("Retrieving categories from: {}, size: {}", from, size);
-
-        Pageable pageable = PageRequest.of(from / size, size);
-        return categoryRepository.findAll(pageable).stream()
-                .map(categoryMapper::toCategoryDto)
+    public List<CategoryDto> getCategories(int from, int size) {
+        return categoryRepository.findAll(PageRequest.of(from / size, size)).stream()
+                .map(categoryMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CategoryDto retrieveCategoryById(Long categoryId) {
-        log.info("Retrieving category with ID: {}", categoryId);
-
-        return categoryRepository.findById(categoryId)
-                .map(categoryMapper::toCategoryDto)
-                .orElseThrow(() -> new NotFoundException("Category not found"));
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean categoryExists(Long categoryId) {
-        return categoryRepository.existsById(categoryId);
+    public CategoryDto getCategory(Long id) {
+        return categoryRepository.findById(id)
+                .map(categoryMapper::toDto)
+                .orElseThrow(() -> new NotFoundException("Категория с таким id не найдена"));
     }
 }

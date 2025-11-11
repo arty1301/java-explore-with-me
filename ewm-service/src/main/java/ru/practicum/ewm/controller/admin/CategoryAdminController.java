@@ -17,20 +17,21 @@ public class CategoryAdminController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CategoryDto createNewCategory(@Valid @RequestBody NewCategoryDto categoryRequest) {
-        return categoryService.createCategory(categoryRequest);
+    public CategoryDto addCategory(@Valid @RequestBody NewCategoryDto newCategoryDto) {
+        return categoryService.addCategory(newCategoryDto);
     }
 
-    @DeleteMapping("/{categoryId}")
+    @DeleteMapping("/{catId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> removeCategory(@PathVariable("categoryId") Long id) {
-        categoryService.removeCategory(id);
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long catId) {
+        categoryService.deleteCategory(catId);
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{categoryId}")
-    public CategoryDto modifyCategory(@PathVariable("categoryId") Long id,
-                                      @Valid @RequestBody CategoryDto categoryUpdate) {
-        return categoryService.modifyCategory(id, categoryUpdate);
+    @PatchMapping("/{catId}")
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<CategoryDto> updateCategory(@PathVariable Long catId,
+                                                      @Valid @RequestBody CategoryDto categoryDto) {
+        return ResponseEntity.ok(categoryService.updateCategory(catId, categoryDto));
     }
 }

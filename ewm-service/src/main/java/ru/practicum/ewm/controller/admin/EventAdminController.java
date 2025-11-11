@@ -2,6 +2,7 @@ package ru.practicum.ewm.controller.admin;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.EventFullDto;
@@ -17,22 +18,29 @@ public class EventAdminController {
     private final EventService eventService;
 
     @GetMapping
-    public ResponseEntity<List<EventFullDto>> searchEvents(
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<List<EventFullDto>> getEventsAdmin(
             @RequestParam(required = false) List<Long> users,
             @RequestParam(required = false) List<String> states,
             @RequestParam(required = false) List<Long> categories,
             @RequestParam(required = false) String rangeStart,
             @RequestParam(required = false) String rangeEnd,
             @RequestParam(defaultValue = "0") int from,
-            @RequestParam(defaultValue = "10") int size) {
-        List<EventFullDto> result = eventService.searchEventsByAdmin(
-                users, states, categories, rangeStart, rangeEnd, from, size);
-        return ResponseEntity.ok(result);
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(eventService.findEventsAdmin(users,
+                states,
+                categories,
+                rangeStart,
+                rangeEnd,
+                from,
+                size));
     }
 
     @PatchMapping("/{eventId}")
-    public EventFullDto updateEventByAdmin(@PathVariable Long eventId,
-                                           @Valid @RequestBody UpdateEventAdminRequest updateRequest) {
-        return eventService.updateEventByAdministrator(eventId, updateRequest);
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<EventFullDto> updateEventAdmin(@PathVariable Long eventId,
+                                                         @Valid @RequestBody UpdateEventAdminRequest dto) {
+        return ResponseEntity.ok(eventService.updateEventByAdmin(eventId, dto));
     }
 }

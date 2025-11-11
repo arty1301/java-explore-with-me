@@ -1,12 +1,10 @@
 package ru.practicum.ewm.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
+
 
 @Entity
 @Table(name = "participation_requests")
@@ -14,6 +12,7 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ParticipationRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,9 +34,6 @@ public class ParticipationRequest {
     private Status status;
 
     public enum Status {
-        PENDING,
-        CONFIRMED,
-        REJECTED,
-        CANCELED
+        PENDING, CONFIRMED, REJECTED, CANCELED
     }
 }

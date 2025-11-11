@@ -17,21 +17,21 @@ public class ParticipationRequestController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ParticipationRequestDto submitParticipationRequest(
-            @PathVariable Long userId,
-            @RequestParam Long eventId) {
-        return requestService.submitRequest(userId, eventId);
+    public ParticipationRequestDto createRequest(@PathVariable Long userId,
+                                                 @RequestParam Long eventId) {
+        return requestService.createRequest(userId, eventId);
     }
 
     @GetMapping
+    @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<List<ParticipationRequestDto>> getUserRequests(@PathVariable Long userId) {
-        List<ParticipationRequestDto> requests = requestService.retrieveUserRequests(userId);
-        return ResponseEntity.ok(requests);
+        return ResponseEntity.ok(requestService.getUserRequests(userId));
     }
 
     @PatchMapping("/{requestId}/cancel")
-    public ParticipationRequestDto cancelRequest(@PathVariable Long userId,
-                                                 @PathVariable Long requestId) {
-        return requestService.cancelParticipationRequest(userId, requestId);
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<ParticipationRequestDto> cancelRequest(@PathVariable Long userId,
+                                                                 @PathVariable Long requestId) {
+        return ResponseEntity.ok(requestService.cancelRequest(userId, requestId));
     }
 }

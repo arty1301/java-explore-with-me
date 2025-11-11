@@ -1,47 +1,34 @@
 package ru.practicum.ewm.exception;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@Slf4j
 @RestControllerAdvice
 public class ErrorHandler {
 
-    @ExceptionHandler(NotFoundException.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleNotFound(NotFoundException ex) {
-        log.warn("Resource not found: {}", ex.getMessage());
-        return new ErrorResponse(ex.getMessage());
+    public ErrorResponse handleNotFoundException(final NotFoundException e) {
+        return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler(ForbiddenException.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ErrorResponse handleForbidden(ForbiddenException ex) {
-        log.warn("Access forbidden: {}", ex.getMessage());
-        return new ErrorResponse(ex.getMessage());
+    public ErrorResponse handleMethodForbiddenExceptionException(final ForbiddenException e) {
+        return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler(ConditionsNotMetException.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleConditionsNotMet(ConditionsNotMetException ex) {
-        log.warn("Conditions not met: {}", ex.getMessage());
-        return new ErrorResponse(ex.getMessage());
+    public ErrorResponse handleMethodConditionsNotMetException(final ConditionsNotMetException e) {
+        return new ErrorResponse(e.getMessage());
     }
 
-    @ExceptionHandler(ConflictException.class)
+    @ExceptionHandler
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleConflict(ConflictException ex) {
-        log.warn("Conflict detected: {}", ex.getMessage());
-        return new ErrorResponse(ex.getMessage());
-    }
-
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleGenericException(Exception ex) {
-        log.error("Internal server error", ex);
-        return new ErrorResponse("Internal server error occurred");
+    public ErrorResponse handleMethodConflictException(final ConflictException e) {
+        return new ErrorResponse(e.getMessage());
     }
 }

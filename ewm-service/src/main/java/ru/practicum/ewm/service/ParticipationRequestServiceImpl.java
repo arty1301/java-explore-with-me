@@ -1,7 +1,6 @@
 package ru.practicum.ewm.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.dto.ParticipationRequestDto;
@@ -20,7 +19,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -31,98 +29,72 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
     private final ParticipationRequestMapper requestMapper;
 
     @Override
-    public ParticipationRequestDto submitRequest(Long userId, Long eventId) {
-        log.info("Submitting participation request - user ID: {}, event ID: {}", userId, eventId);
-
+    public ParticipationRequestDto createRequest(Long userId, Long eventId) {
         User requester = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new NotFoundException("Event not found"));
 
-        validateRequestSubmission(requester, event);
-
-        ParticipationRequest.Status initialStatus = determineInitialStatus(event);
-
-        ParticipationRequest request = new ParticipationRequest();
-        request.setCreated(LocalDateTime.now());
-        request.setEvent(event);
-        request.setRequester(requester);
-        request.setStatus(initialStatus);
-
-        ParticipationRequest savedRequest = requestRepository.save(request);
-        log.info("Participation request submitted successfully with ID: {}", savedRequest.getId());
-
-        return requestMapper.toParticipationRequestDto(savedRequest);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<ParticipationRequestDto> retrieveUserRequests(Long userId) {
-        log.info("Retrieving participation requests for user ID: {}", userId);
-
-        if (!userRepository.existsById(userId)) {
-            throw new NotFoundException("User not found");
+        if (event.getInitiator().getId().equals(userId)) {
+            throw new ConflictException("Event owner cannot create participation request for their own event");
         }
 
-        return requestRepository.findByRequesterId(userId).stream()
-                .map(requestMapper::toParticipationRequestDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public ParticipationRequestDto cancelParticipationRequest(Long userId, Long requestId) {
-        log.info("Canceling participation request - user ID: {}, request ID: {}", userId, requestId);
-
-        ParticipationRequest request = requestRepository.findById(requestId)
-                .orElseThrow(() -> new NotFoundException("Participation request not found"));
-
-        validateRequestCancellation(request, userId);
-
-        request.setStatus(ParticipationRequest.Status.CANCELED);
-        ParticipationRequest updatedRequest = requestRepository.save(request);
-
-        log.info("Participation request canceled successfully");
-        return requestMapper.toParticipationRequestDto(updatedRequest);
-    }
-
-    private void validateRequestSubmission(User requester, Event event) {
-        if (event.getInitiator().getId().equals(requester.getId())) {
-            throw new ConflictException("Event initiator cannot submit participation request for their own event");
+        if (!Event.EventState.PUBLISHED.equals(event.getState())) {
+            throw new ConflictException("Cannot participate in unpublished event");
         }
 
-        if (event.getState() != Event.EventState.PUBLISHED) {
-            throw new ConflictException("Cannot submit request for unpublished event");
-        }
-
-        if (requestRepository.existsByEventIdAndRequesterId(event.getId(), requester.getId())) {
+        boolean requestExists = requestRepository.existsByEventIdAndRequesterId(eventId, userId);
+        if (requestExists) {
             throw new ConflictException("Participation request already exists for this event");
         }
 
         if (event.getParticipantLimit() != null && event.getParticipantLimit() > 0) {
             Integer confirmedCount = requestRepository.countByEventIdAndStatus(
-                    event.getId(), ParticipationRequest.Status.CONFIRMED);
+                    eventId, ParticipationRequest.Status.CONFIRMED);
             if (confirmedCount >= event.getParticipantLimit()) {
-                throw new ConflictException("Participant limit reached for this event");
+                throw new ConflictException("Event participant limit reached");
             }
         }
-    }
 
-    private ParticipationRequest.Status determineInitialStatus(Event event) {
+        ParticipationRequest.Status initialStatus;
+
         if (event.getParticipantLimit() == null || event.getParticipantLimit() == 0) {
-            return ParticipationRequest.Status.CONFIRMED;
+            initialStatus = ParticipationRequest.Status.CONFIRMED;
+        } else if (Boolean.FALSE.equals(event.getRequestModeration())) {
+            initialStatus = ParticipationRequest.Status.CONFIRMED;
+        } else {
+            initialStatus = ParticipationRequest.Status.PENDING;
         }
 
-        if (Boolean.FALSE.equals(event.getRequestModeration())) {
-            return ParticipationRequest.Status.CONFIRMED;
-        }
+        ParticipationRequest request = ParticipationRequest.builder()
+                .created(LocalDateTime.now())
+                .event(event)
+                .requester(requester)
+                .status(initialStatus)
+                .build();
 
-        return ParticipationRequest.Status.PENDING;
+        ParticipationRequest saved = requestRepository.save(request);
+        return requestMapper.toDto(saved);
     }
 
-    private void validateRequestCancellation(ParticipationRequest request, Long userId) {
+    @Override
+    @Transactional(readOnly = true)
+    public List<ParticipationRequestDto> getUserRequests(Long userId) {
+        return requestRepository.findByRequesterId(userId).stream()
+                .map(requestMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ParticipationRequestDto cancelRequest(Long userId, Long requestId) {
+        ParticipationRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new NotFoundException("Participation request not found"));
         if (!request.getRequester().getId().equals(userId)) {
-            throw new ForbiddenException("User can only cancel their own participation requests");
+            throw new ForbiddenException("Cannot cancel another user's participation request");
         }
+        request.setStatus(ParticipationRequest.Status.CANCELED);
+        ParticipationRequest updated = requestRepository.save(request);
+        return requestMapper.toDto(updated);
     }
 }

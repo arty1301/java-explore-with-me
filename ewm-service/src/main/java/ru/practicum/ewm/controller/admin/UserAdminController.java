@@ -19,23 +19,22 @@ public class UserAdminController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UserDto registerNewUser(@Valid @RequestBody NewUserRequest userRequest) {
-        return userService.registerUser(userRequest);
+    public UserDto registerUser(@Valid @RequestBody NewUserRequest request) {
+        return userService.addUser(request);
     }
 
     @GetMapping
-    public ResponseEntity<List<UserDto>> retrieveUsers(
-            @RequestParam(required = false) List<Long> ids,
-            @RequestParam(defaultValue = "0") int from,
-            @RequestParam(defaultValue = "10") int size) {
-        List<UserDto> users = userService.retrieveUsers(ids, from, size);
-        return ResponseEntity.ok(users);
+    @ResponseStatus(HttpStatus.OK)
+    public ResponseEntity<List<UserDto>> getUsers(@RequestParam(required = false) List<Long> ids,
+                                                  @RequestParam(defaultValue = "0") int from,
+                                                  @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(userService.getUsers(ids, from, size));
     }
 
     @DeleteMapping("/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public ResponseEntity<Void> removeUser(@PathVariable Long userId) {
-        userService.removeUser(userId);
+    public ResponseEntity<Void> delete(@PathVariable Long userId) {
+        userService.deleteUser(userId);
         return ResponseEntity.noContent().build();
     }
 }

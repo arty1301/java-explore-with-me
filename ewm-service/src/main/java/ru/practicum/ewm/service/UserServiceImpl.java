@@ -30,13 +30,20 @@ public class UserServiceImpl implements UserService {
     public UserDto registerUser(NewUserRequest userRequest) {
         log.info("Registering new user: {}", userRequest.getEmail());
 
-        if (userRepository.existsByEmail(userRequest.getEmail())) {
+        validateEmailFormat(userRequest.getEmail());
+
+        String cleanedEmail = userRequest.getEmail().trim();
+
+        if (cleanedEmail.isEmpty()) {
+            throw new ConflictException("Email cannot be empty or consist only of spaces");
+        }
+
+        if (userRepository.existsByEmail(cleanedEmail)) {
             throw new ConflictException("Email already registered");
         }
 
-        validateEmailFormat(userRequest.getEmail());
-
         User user = userMapper.toUserEntity(userRequest);
+        user.setEmail(cleanedEmail);
         User savedUser = userRepository.save(user);
 
         log.info("User registered successfully with ID: {}", savedUser.getId());
@@ -79,7 +86,12 @@ public class UserServiceImpl implements UserService {
             throw new ConflictException("Email cannot be empty");
         }
 
-        String[] parts = email.split("@");
+        String cleanedEmail = email.trim();
+        if (cleanedEmail.isEmpty()) {
+            throw new ConflictException("Email cannot consist only of spaces");
+        }
+
+        String[] parts = cleanedEmail.split("@");
         if (parts.length != 2) {
             throw new ConflictException("Invalid email format");
         }
@@ -87,12 +99,23 @@ public class UserServiceImpl implements UserService {
         String localPart = parts[0];
         String domain = parts[1];
 
-        if (localPart.length() > 64) {
-            throw new ConflictException("Email local part cannot exceed 64 characters");
+        if (localPart.isEmpty()) {
+            throw new ConflictException("Email local part cannot be empty");
+        }
+
+        if (domain.isEmpty() || !domain.contains(".")) {
+            throw new ConflictException("Invalid email domain");
+        }
+
+        if (cleanedEmail.contains(" ")) {
+            throw new ConflictException("Email cannot contain spaces");
         }
 
         String[] domainLabels = domain.split("\\.");
         for (String label : domainLabels) {
+            if (label.isEmpty()) {
+                throw new ConflictException("Email domain label cannot be empty");
+            }
             if (label.length() > 63) {
                 throw new ConflictException("Email domain label cannot exceed 63 characters");
             }

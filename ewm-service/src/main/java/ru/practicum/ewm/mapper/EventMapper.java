@@ -25,6 +25,10 @@ public interface EventMapper {
     @Mapping(source = "category", target = "category")
     @Mapping(source = "initiator", target = "initiator")
     @Mapping(source = "eventDate", target = "eventDate", qualifiedByName = "formatLocalDateTime")
+    @Mapping(source = "createdOn", target = "createdOn", qualifiedByName = "formatLocalDateTime")
+    @Mapping(source = "publishedOn", target = "publishedOn", qualifiedByName = "formatLocalDateTime")
+    @Mapping(source = "state", target = "state", qualifiedByName = "stateToString")
+    @Mapping(source = "location", target = "location")
     EventShortDto toEventShortDto(Event event);
 
     @Mapping(target = "id", ignore = true)

@@ -110,7 +110,6 @@ public class EventServiceImpl implements EventService {
                 })
                 .collect(Collectors.toList());
 
-        // Сортировка результатов
         if ("VIEWS".equals(sort)) {
             result.sort((e1, e2) -> Long.compare(e2.getViews(), e1.getViews()));
         } else if ("EVENT_DATE".equals(sort)) {
@@ -192,6 +191,18 @@ public class EventServiceImpl implements EventService {
                     EventShortDto dto = eventMapper.toEventShortDto(event);
                     dto.setConfirmedRequests(confirmedRequests.getOrDefault(event.getId(), 0));
                     dto.setViews(views.getOrDefault(event.getId(), 0L));
+                    if (dto.getDescription() == null) {
+                        dto.setDescription(event.getDescription());
+                    }
+                    if (dto.getParticipantLimit() == null) {
+                        dto.setParticipantLimit(event.getParticipantLimit());
+                    }
+                    if (dto.getRequestModeration() == null) {
+                        dto.setRequestModeration(event.getRequestModeration());
+                    }
+                    if (dto.getLocation() == null && event.getLocation() != null) {
+                        dto.setLocation(new LocationDto(event.getLocation().getLat(), event.getLocation().getLon()));
+                    }
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -286,7 +297,6 @@ public class EventServiceImpl implements EventService {
         return result;
     }
 
-    // Вспомогательные методы
     private void validateEventDate(String eventDateStr, int hoursBefore) {
         if (eventDateStr != null) {
             LocalDateTime eventDate = parseDateTime(eventDateStr);

@@ -19,4 +19,11 @@ public class EventShortDto {
     private Boolean paid;
     private String title;
     private Long views;
+    private String description;
+    private Integer participantLimit;
+    private String state;
+    private String createdOn;
+    private String publishedOn;
+    private LocationDto location;
+    private Boolean requestModeration;
 }

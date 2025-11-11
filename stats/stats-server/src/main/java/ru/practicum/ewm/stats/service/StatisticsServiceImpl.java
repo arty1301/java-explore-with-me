@@ -53,6 +53,7 @@ public class StatisticsServiceImpl implements StatisticsService {
         return statistics;
     }
 
+
     private void validateTimeRange(LocalDateTime start, LocalDateTime end) {
         if (start == null) {
             throw new IllegalArgumentException("Start time cannot be null");

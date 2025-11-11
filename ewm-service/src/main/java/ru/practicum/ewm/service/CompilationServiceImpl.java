@@ -26,23 +26,26 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional
 public class CompilationServiceImpl implements CompilationService {
-
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
     private final CompilationMapper compilationMapper;
 
     @Override
     public CompilationDto createCompilation(NewCompilationDto compilationDto) {
-        log.info("Creating new compilation: {}", compilationDto.getTitle());
+        log.info("Creating new compilation with title: {}", compilationDto.getTitle());
 
         Set<Event> events = resolveEvents(compilationDto.getEvents());
 
         Compilation compilation = compilationMapper.toCompilationEntity(compilationDto);
         compilation.setEvents(events);
 
-        Compilation savedCompilation = compilationRepository.save(compilation);
+        if (compilation.getPinned() == null) {
+            compilation.setPinned(false);
+        }
 
+        Compilation savedCompilation = compilationRepository.save(compilation);
         log.info("Compilation created successfully with ID: {}", savedCompilation.getId());
+
         return compilationMapper.toCompilationDto(savedCompilation);
     }
 
@@ -67,8 +70,8 @@ public class CompilationServiceImpl implements CompilationService {
         }
 
         Compilation updatedCompilation = compilationRepository.save(compilation);
+        log.info("Compilation with ID: {} updated successfully", compilationId);
 
-        log.info("Compilation with ID {} updated successfully", compilationId);
         return compilationMapper.toCompilationDto(updatedCompilation);
     }
 
@@ -81,21 +84,21 @@ public class CompilationServiceImpl implements CompilationService {
         }
 
         compilationRepository.deleteById(compilationId);
-        log.info("Compilation with ID {} deleted successfully", compilationId);
+        log.info("Compilation with ID: {} deleted successfully", compilationId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CompilationDto> getCompilationsFiltered(int from, int size, Boolean pinned) {
-        log.info("Retrieving compilations with pinned={}, from={}, size={}", pinned, from, size);
+    public List<CompilationDto> retrieveCompilations(int from, int size, Boolean pinned) {
+        log.info("Retrieving compilations - from: {}, size: {}, pinned: {}", from, size, pinned);
 
         Pageable pageable = PageRequest.of(from / size, size);
-
         List<Compilation> compilations;
-        if (pinned != null) {
-            compilations = compilationRepository.findByPinned(pinned, pageable).getContent();
-        } else {
+
+        if (pinned == null) {
             compilations = compilationRepository.findAll(pageable).getContent();
+        } else {
+            compilations = compilationRepository.findCompilationsByPinnedStatus(pinned, pageable).getContent();
         }
 
         return compilations.stream()
@@ -105,7 +108,7 @@ public class CompilationServiceImpl implements CompilationService {
 
     @Override
     @Transactional(readOnly = true)
-    public CompilationDto getCompilationById(Long compilationId) {
+    public CompilationDto retrieveCompilationById(Long compilationId) {
         log.info("Retrieving compilation with ID: {}", compilationId);
 
         return compilationRepository.findById(compilationId)
@@ -118,11 +121,9 @@ public class CompilationServiceImpl implements CompilationService {
             return new HashSet<>();
         }
 
-        List<Event> events = eventRepository.findByIdIn(List.copyOf(eventIds));
-        if (events.size() != eventIds.size()) {
-            throw new NotFoundException("One or more events not found");
-        }
-
-        return new HashSet<>(events);
+        return eventIds.stream()
+                .map(id -> eventRepository.findById(id)
+                        .orElseThrow(() -> new NotFoundException("Event not found with ID: " + id)))
+                .collect(Collectors.toSet());
     }
 }

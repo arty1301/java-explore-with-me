@@ -11,11 +11,19 @@ import java.util.List;
 
 public interface CompilationRepository extends JpaRepository<Compilation, Long> {
 
+    Page<Compilation> findAll(Pageable pageable);
+
     @Query("SELECT c FROM Compilation c WHERE " +
             "(:pinned IS NULL OR c.pinned = :pinned)")
-    Page<Compilation> findByPinned(@Param("pinned") Boolean pinned, Pageable pageable);
+    Page<Compilation> findCompilationsByPinnedStatus(@Param("pinned") Boolean pinned, Pageable pageable);
 
-    List<Compilation> findByPinnedOrderByIdDesc(Boolean pinned);
+    List<Compilation> findByPinned(Boolean pinned);
+
+    @Query("SELECT c FROM Compilation c WHERE c.title LIKE %:title%")
+    Page<Compilation> findByTitleContaining(@Param("title") String title, Pageable pageable);
 
     boolean existsByTitle(String title);
+
+    @Query("SELECT c FROM Compilation c WHERE c.pinned = :pinned")
+    List<Compilation> findCompilationsByPinned(@Param("pinned") boolean pinned, Pageable pageable);
 }

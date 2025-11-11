@@ -13,7 +13,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateCompilationRequest {
-    @Size(max = 50, message = "Title must not exceed 50 characters")
+    @Size(max = 50, message = "Title cannot exceed 50 characters")
     private String title;
 
     private Boolean pinned;

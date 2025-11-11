@@ -35,6 +35,7 @@ public class UpdateEventAdminRequest {
     private String title;
 
     private StateAction stateAction;
+
     private Float lat;
     private Float lon;
 

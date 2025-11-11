@@ -14,10 +14,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmail(String email);
 
-    @Query("SELECT u FROM User u WHERE (:ids IS NULL OR u.id IN :ids)")
-    Page<User> findByIdIn(@Param("ids") List<Long> ids, Pageable pageable);
-
     Optional<User> findByEmail(String email);
 
-    List<User> findByNameContainingIgnoreCase(String name);
+    @Query("SELECT u FROM User u WHERE u.id IN :userIds")
+    List<User> findByIdIn(@Param("userIds") List<Long> userIds);
+
+    Page<User> findAll(Pageable pageable);
+
+    @Query("SELECT u FROM User u WHERE LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))")
+    Page<User> findByNameContainingIgnoreCase(@Param("name") String name, Pageable pageable);
+
+    @Query("SELECT u FROM User u WHERE u.email LIKE %:email%")
+    Page<User> findByEmailContaining(@Param("email") String email, Pageable pageable);
 }

@@ -19,10 +19,10 @@ public class EventFullDto {
     private String eventDate;
     private UserShortDto initiator;
     private LocationDto location;
-    private Boolean paid;
+    private boolean paid;
     private Integer participantLimit;
     private String publishedOn;
-    private Boolean requestModeration;
+    private boolean requestModeration;
     private String state;
     private String title;
     private Long views;

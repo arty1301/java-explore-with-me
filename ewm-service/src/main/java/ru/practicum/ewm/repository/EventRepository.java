@@ -16,7 +16,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     Page<Event> findByInitiatorId(Long initiatorId, Pageable pageable);
 
-    Optional<Event> findByIdAndInitiatorId(Long eventId, Long initiatorId);
+    Optional<Event> findByIdAndInitiatorId(Long id, Long initiatorId);
+
+    List<Event> findByCategoryId(Long categoryId);
 
     @Query("SELECT e FROM Event e WHERE " +
             "(:userIds IS NULL OR e.initiator.id IN :userIds) AND " +
@@ -31,27 +33,40 @@ public interface EventRepository extends JpaRepository<Event, Long> {
                                       @Param("rangeEnd") LocalDateTime rangeEnd,
                                       Pageable pageable);
 
-    @Query("SELECT COUNT(pr) FROM ParticipationRequest pr WHERE pr.event.id = :eventId AND pr.status = :status")
-    Integer countConfirmedRequests(@Param("eventId") Long eventId,
-                                   @Param("status") ParticipationRequest.Status status);
+    @Query("SELECT COUNT(pr) FROM ParticipationRequest pr " +
+            "WHERE pr.event.id = :eventId AND pr.status = :status")
+    Integer countConfirmedRequestsForEvent(@Param("eventId") Long eventId,
+                                           @Param("status") ParticipationRequest.Status status);
 
-    @Query("SELECT e FROM Event e WHERE " +
-            "e.state = 'PUBLISHED' AND " +
-            "(:text IS NULL OR LOWER(e.annotation) LIKE LOWER(CONCAT('%', :text, '%')) OR " +
-            "LOWER(e.description) LIKE LOWER(CONCAT('%', :text, '%'))) AND " +
-            "(:categoryIds IS NULL OR e.category.id IN :categoryIds) AND " +
-            "(:paid IS NULL OR e.paid = :paid) AND " +
-            "e.eventDate > :currentTime")
-    Page<Event> findPublishedEvents(@Param("text") String text,
-                                    @Param("categoryIds") List<Long> categoryIds,
-                                    @Param("paid") Boolean paid,
-                                    @Param("currentTime") LocalDateTime currentTime,
-                                    Pageable pageable);
+    @Query("SELECT e FROM Event e " +
+            "WHERE e.state = 'PUBLISHED' " +
+            "AND (:text IS NULL OR " +
+            "     LOWER(e.annotation) LIKE LOWER(CONCAT('%', :text, '%')) OR " +
+            "     LOWER(e.description) LIKE LOWER(CONCAT('%', :text, '%'))) " +
+            "AND (:categories IS NULL OR e.category.id IN :categories) " +
+            "AND (:paid IS NULL OR e.paid = :paid) " +
+            "AND e.eventDate > :currentTime")
+    Page<Event> findPublishedEventsWithFilters(@Param("text") String text,
+                                               @Param("categories") List<Long> categories,
+                                               @Param("paid") Boolean paid,
+                                               @Param("currentTime") LocalDateTime currentTime,
+                                               Pageable pageable);
 
-    Optional<Event> findByIdAndState(Long id, Event.EventState state);
+    @Query("SELECT e FROM Event e WHERE e.id = :id AND e.state = 'PUBLISHED'")
+    Optional<Event> findPublishedEventById(@Param("id") Long id);
 
-    List<Event> findByCategoryId(Long categoryId);
+    @Query("SELECT e FROM Event e WHERE e.state = 'PUBLISHED' " +
+            "AND e.eventDate BETWEEN :start AND :end")
+    Page<Event> findPublishedEventsInDateRange(@Param("start") LocalDateTime start,
+                                               @Param("end") LocalDateTime end,
+                                               Pageable pageable);
 
-    @Query("SELECT e FROM Event e WHERE e.id IN :eventIds")
-    List<Event> findByIdIn(@Param("eventIds") List<Long> eventIds);
+    List<Event> findByIdIn(List<Long> eventIds);
+
+    default List<Event> findEventsWithFilters(List<Long> users, List<Event.EventState> states,
+                                              List<Long> categories, LocalDateTime rangeStart,
+                                              LocalDateTime rangeEnd, int from, int size) {
+        Pageable pageable = Pageable.ofSize(size).withPage(from / size);
+        return findEventsWithFilters(users, states, categories, rangeStart, rangeEnd, pageable).getContent();
+    }
 }

@@ -7,8 +7,4 @@ import lombok.Getter;
 @Getter
 public class ErrorResponse {
     private final String error;
-
-    public static ErrorResponse of(String message) {
-        return new ErrorResponse(message);
-    }
 }

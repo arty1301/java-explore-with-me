@@ -7,8 +7,14 @@ import java.util.List;
 
 public interface CategoryService {
     CategoryDto createCategory(NewCategoryDto newCategoryDto);
+
     void removeCategory(Long categoryId);
+
     CategoryDto modifyCategory(Long categoryId, CategoryDto categoryDto);
-    List<CategoryDto> getCategoriesPaginated(int from, int size);
-    CategoryDto getCategoryById(Long categoryId);
+
+    List<CategoryDto> retrieveCategories(int from, int size);
+
+    CategoryDto retrieveCategoryById(Long categoryId);
+
+    boolean categoryExists(Long categoryId);
 }

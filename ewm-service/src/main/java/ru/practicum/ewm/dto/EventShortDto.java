@@ -16,14 +16,7 @@ public class EventShortDto {
     private Integer confirmedRequests;
     private String eventDate;
     private UserShortDto initiator;
-    private Boolean paid;
+    private boolean paid;
     private String title;
     private Long views;
-    private String description;
-    private Integer participantLimit;
-    private String state;
-    private String createdOn;
-    private String publishedOn;
-    private LocationDto location;
-    private Boolean requestModeration;
 }

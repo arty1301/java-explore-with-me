@@ -18,7 +18,7 @@ public class NewUserRequest {
     private String name;
 
     @NotBlank(message = "Email cannot be empty")
-    @Email(message = "Email should be valid")
+    @Email(message = "Invalid email format")
     @Size(min = 6, max = 254, message = "Email must be between 6 and 254 characters")
     private String email;
 }

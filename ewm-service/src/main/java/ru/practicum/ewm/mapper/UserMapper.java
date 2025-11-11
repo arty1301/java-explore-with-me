@@ -16,4 +16,20 @@ public interface UserMapper {
 
     @Mapping(target = "id", ignore = true)
     User toUserEntity(NewUserRequest newUserRequest);
+
+    default User updateUserFromDto(UserDto userDto, User user) {
+        if (userDto == null) {
+            return user;
+        }
+
+        if (userDto.getName() != null) {
+            user.setName(userDto.getName());
+        }
+
+        if (userDto.getEmail() != null) {
+            user.setEmail(userDto.getEmail());
+        }
+
+        return user;
+    }
 }

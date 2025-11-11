@@ -15,11 +15,26 @@ public interface CompilationMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "events", ignore = true)
-    @Mapping(source = "pinned", target = "pinned", qualifiedByName = "defaultPinned")
     Compilation toCompilationEntity(NewCompilationDto newCompilationDto);
 
-    @Named("defaultPinned")
-    default Boolean defaultPinned(Boolean pinned) {
-        return pinned != null ? pinned : false;
+    @Named("updateCompilationFromDto")
+    default Compilation updateCompilationFromDto(Compilation compilation, Compilation updates) {
+        if (updates == null) {
+            return compilation;
+        }
+
+        if (updates.getTitle() != null) {
+            compilation.setTitle(updates.getTitle());
+        }
+
+        if (updates.getPinned() != null) {
+            compilation.setPinned(updates.getPinned());
+        }
+
+        if (updates.getEvents() != null) {
+            compilation.setEvents(updates.getEvents());
+        }
+
+        return compilation;
     }
 }

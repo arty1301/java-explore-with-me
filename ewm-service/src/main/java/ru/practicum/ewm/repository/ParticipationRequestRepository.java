@@ -14,20 +14,26 @@ public interface ParticipationRequestRepository extends JpaRepository<Participat
 
     List<ParticipationRequest> findByEventId(Long eventId);
 
-    List<ParticipationRequest> findByEventIdAndStatus(Long eventId, ParticipationRequest.Status status);
-
-    @Query("SELECT pr FROM ParticipationRequest pr WHERE pr.event.id = :eventId AND pr.status = 'CONFIRMED'")
-    List<ParticipationRequest> findConfirmedRequestsByEventId(@Param("eventId") Long eventId);
+    @Query("SELECT pr FROM ParticipationRequest pr WHERE pr.event.id = :eventId AND pr.requester.id = :requesterId")
+    Optional<ParticipationRequest> findByEventIdAndRequesterId(@Param("eventId") Long eventId,
+                                                               @Param("requesterId") Long requesterId);
 
     boolean existsByEventIdAndRequesterId(Long eventId, Long requesterId);
 
-    Optional<ParticipationRequest> findByIdAndRequesterId(Long requestId, Long requesterId);
+    @Query("SELECT COUNT(pr) FROM ParticipationRequest pr " +
+            "WHERE pr.event.id = :eventId AND pr.status = :status")
+    Integer countByEventIdAndStatus(@Param("eventId") Long eventId,
+                                    @Param("status") ParticipationRequest.Status status);
 
-    @Query("SELECT COUNT(pr) FROM ParticipationRequest pr WHERE pr.event.id = :eventId AND pr.status = :status")
-    Long countByEventIdAndStatus(@Param("eventId") Long eventId,
-                                 @Param("status") ParticipationRequest.Status status);
+    @Query("SELECT pr FROM ParticipationRequest pr " +
+            "WHERE pr.event.id = :eventId AND pr.status = :status")
+    List<ParticipationRequest> findByEventIdAndStatus(@Param("eventId") Long eventId,
+                                                      @Param("status") ParticipationRequest.Status status);
 
-    @Query("SELECT pr FROM ParticipationRequest pr WHERE pr.id IN :requestIds AND pr.event.id = :eventId")
-    List<ParticipationRequest> findByIdInAndEventId(@Param("requestIds") List<Long> requestIds,
-                                                    @Param("eventId") Long eventId);
+    @Query("SELECT pr FROM ParticipationRequest pr WHERE pr.id IN :requestIds")
+    List<ParticipationRequest> findByIdIn(@Param("requestIds") List<Long> requestIds);
+
+    @Query("SELECT pr FROM ParticipationRequest pr " +
+            "WHERE pr.event.id = :eventId AND pr.status = 'PENDING'")
+    List<ParticipationRequest> findPendingRequestsByEventId(@Param("eventId") Long eventId);
 }

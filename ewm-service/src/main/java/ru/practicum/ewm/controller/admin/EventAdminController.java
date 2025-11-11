@@ -2,6 +2,7 @@ package ru.practicum.ewm.controller.admin;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.ewm.dto.EventFullDto;
 import ru.practicum.ewm.dto.UpdateEventAdminRequest;
@@ -13,11 +14,10 @@ import java.util.List;
 @RequestMapping("/admin/events")
 @RequiredArgsConstructor
 public class EventAdminController {
-
     private final EventService eventService;
 
     @GetMapping
-    public List<EventFullDto> getEventsForAdmin(
+    public ResponseEntity<List<EventFullDto>> searchEvents(
             @RequestParam(required = false) List<Long> users,
             @RequestParam(required = false) List<String> states,
             @RequestParam(required = false) List<Long> categories,
@@ -25,14 +25,14 @@ public class EventAdminController {
             @RequestParam(required = false) String rangeEnd,
             @RequestParam(defaultValue = "0") int from,
             @RequestParam(defaultValue = "10") int size) {
-
-        return eventService.getEventsForAdministration(users, states, categories,
-                rangeStart, rangeEnd, from, size);
+        List<EventFullDto> result = eventService.searchEventsByAdmin(
+                users, states, categories, rangeStart, rangeEnd, from, size);
+        return ResponseEntity.ok(result);
     }
 
     @PatchMapping("/{eventId}")
     public EventFullDto updateEventByAdmin(@PathVariable Long eventId,
-                                           @Valid @RequestBody UpdateEventAdminRequest adminRequest) {
-        return eventService.updateEventByAdministrator(eventId, adminRequest);
+                                           @Valid @RequestBody UpdateEventAdminRequest updateRequest) {
+        return eventService.updateEventByAdministrator(eventId, updateRequest);
     }
 }

@@ -25,10 +25,6 @@ public interface EventMapper {
     @Mapping(source = "category", target = "category")
     @Mapping(source = "initiator", target = "initiator")
     @Mapping(source = "eventDate", target = "eventDate", qualifiedByName = "formatLocalDateTime")
-    @Mapping(source = "createdOn", target = "createdOn", qualifiedByName = "formatLocalDateTime")
-    @Mapping(source = "publishedOn", target = "publishedOn", qualifiedByName = "formatLocalDateTime")
-    @Mapping(source = "state", target = "state", qualifiedByName = "stateToString")
-    @Mapping(source = "location", target = "location")
     EventShortDto toEventShortDto(Event event);
 
     @Mapping(target = "id", ignore = true)
@@ -36,7 +32,6 @@ public interface EventMapper {
     @Mapping(target = "createdOn", ignore = true)
     @Mapping(target = "publishedOn", ignore = true)
     @Mapping(target = "views", ignore = true)
-    @Mapping(target = "initiator", ignore = true)
     @Mapping(source = "category", target = "category.id")
     @Mapping(source = "eventDate", target = "eventDate", dateFormat = "yyyy-MM-dd HH:mm:ss")
     Event toEventEntity(NewEventDto newEventDto);
@@ -53,5 +48,10 @@ public interface EventMapper {
     @Named("stateToString")
     default String stateToString(Event.EventState state) {
         return state != null ? state.name() : null;
+    }
+
+    @Named("stringToState")
+    default Event.EventState stringToState(String state) {
+        return state != null ? Event.EventState.valueOf(state) : null;
     }
 }

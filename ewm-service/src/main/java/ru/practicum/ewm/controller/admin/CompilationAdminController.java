@@ -13,24 +13,23 @@ import ru.practicum.ewm.service.CompilationService;
 @RequestMapping("/admin/compilations")
 @RequiredArgsConstructor
 public class CompilationAdminController {
-
     private final CompilationService compilationService;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CompilationDto createCompilation(@Valid @RequestBody NewCompilationDto compilationDto) {
-        return compilationService.createCompilation(compilationDto);
+    public CompilationDto createCompilation(@Valid @RequestBody NewCompilationDto compilationData) {
+        return compilationService.createCompilation(compilationData);
     }
 
     @PatchMapping("/{compilationId}")
-    public CompilationDto updateCompilation(@PathVariable Long compilationId,
-                                            @Valid @RequestBody UpdateCompilationRequest updateRequest) {
-        return compilationService.updateCompilation(compilationId, updateRequest);
+    public CompilationDto updateCompilation(@PathVariable("compilationId") Long id,
+                                            @Valid @RequestBody UpdateCompilationRequest updateData) {
+        return compilationService.updateCompilation(id, updateData);
     }
 
     @DeleteMapping("/{compilationId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteCompilation(@PathVariable Long compilationId) {
-        compilationService.deleteCompilation(compilationId);
+    public void deleteCompilation(@PathVariable("compilationId") Long id) {
+        compilationService.deleteCompilation(id);
     }
 }

@@ -26,6 +26,7 @@ public class UpdateEventUserRequest {
     private String eventDate;
 
     private Boolean paid;
+
     private Location location;
 
     @Min(value = 0, message = "Participant limit cannot be negative")

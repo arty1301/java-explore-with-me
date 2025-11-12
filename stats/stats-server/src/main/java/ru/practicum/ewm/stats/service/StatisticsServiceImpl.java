@@ -53,7 +53,14 @@ public class StatisticsServiceImpl implements StatisticsService {
         return statistics;
     }
 
+
     private void validateTimeRange(LocalDateTime start, LocalDateTime end) {
+        if (start == null) {
+            throw new IllegalArgumentException("Start time cannot be null");
+        }
+        if (end == null) {
+            throw new IllegalArgumentException("End time cannot be null");
+        }
         if (start.isAfter(end)) {
             throw new IllegalArgumentException("Start time must be before end time");
         }

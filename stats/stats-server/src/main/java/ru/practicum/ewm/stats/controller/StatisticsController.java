@@ -59,4 +59,10 @@ public class StatisticsController {
     public ResponseEntity<String> root() {
         return ResponseEntity.ok("Statistics Service is running");
     }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.warn("Invalid request parameters: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
 }

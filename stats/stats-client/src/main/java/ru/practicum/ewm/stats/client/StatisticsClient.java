@@ -10,9 +10,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -28,41 +28,40 @@ public class StatisticsClient {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public void sendAccessRecord(EndpointHit hit) {
-        try {
-            String url = statisticsServiceUrl + "/hit";
-            log.debug("Sending access record to statistics service: {}", hit);
-            restTemplate.postForEntity(url, hit, Void.class);
-            log.info("Access record sent successfully for app: {}", hit.getApp());
-        } catch (Exception e) {
-            log.warn("Failed to send access record: {}", e.getMessage());
-        }
+        String url = statisticsServiceUrl + "/hit";
+
+        log.debug("Sending access record to statistics service: {}", hit);
+
+        restTemplate.postForEntity(url, hit, Void.class);
+
+        log.info("Access record sent successfully for app: {}", hit.getApp());
     }
 
     public List<ViewStats> fetchAccessStatistics(LocalDateTime start, LocalDateTime end,
                                                  List<String> uris, boolean unique) {
-        try {
-            UriComponentsBuilder builder = UriComponentsBuilder
-                    .fromHttpUrl(statisticsServiceUrl + "/stats")
-                    .queryParam("start", start.format(DATE_FORMATTER))
-                    .queryParam("end", end.format(DATE_FORMATTER))
-                    .queryParam("unique", unique);
 
-            if (uris != null && !uris.isEmpty()) {
-                builder.queryParam("uris", String.join(",", uris));
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromHttpUrl(statisticsServiceUrl + "/stats")
+                .queryParam("start", start.format(DATE_FORMATTER))
+                .queryParam("end", end.format(DATE_FORMATTER))
+                .queryParam("unique", unique);
+
+        if (uris != null && !uris.isEmpty()) {
+            for (String uri : uris) {
+                builder.queryParam("uris", uri);
             }
-
-            String url = builder.build().toUriString();
-            log.debug("Fetching statistics from: {}", url);
-
-            ResponseEntity<List<ViewStats>> response = restTemplate.exchange(
-                    url, HttpMethod.GET, null,
-                    new ParameterizedTypeReference<List<ViewStats>>() {});
-
-            return response.getBody() != null ? response.getBody() : Collections.emptyList();
-        } catch (Exception e) {
-            log.warn("Failed to fetch statistics: {}", e.getMessage());
-            return Collections.emptyList();
         }
+
+        String url = builder.build().toUriString();
+
+        log.debug("Fetching statistics from: {}", url);
+
+        ResponseEntity<List<ViewStats>> response = restTemplate.exchange(
+                url, HttpMethod.GET, null,
+                new ParameterizedTypeReference<List<ViewStats>>() {});
+
+        log.info("Retrieved {} statistics records", response.getBody() != null ? response.getBody().size() : 0);
+        return response.getBody();
     }
 
     public boolean checkServiceHealth() {

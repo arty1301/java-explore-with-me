@@ -65,3 +65,16 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_participation_user_event
 ON participation_requests(requester_id, event_id)
 WHERE status IN ('PENDING', 'CONFIRMED');
+
+CREATE TABLE IF NOT EXISTS comments (
+    id BIGSERIAL PRIMARY KEY,
+    text VARCHAR(2000) NOT NULL,
+    event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created TIMESTAMP WITHOUT TIME ZONE NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_comments_event ON comments(event_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user ON comments(user_id);
+CREATE INDEX IF NOT EXISTS idx_comments_created ON comments(created);
+CREATE INDEX IF NOT EXISTS idx_comments_event_user ON comments(event_id, user_id);
